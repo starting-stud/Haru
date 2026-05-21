@@ -132,13 +132,73 @@ canvas{width:100%;height:100%;display:block}
 /* 즐겨찾기 행 */
 .fav-row{margin:12px 2px 6px;display:flex;justify-content:space-between;align-items:center}
 .fav-row .label{font-size:16px;font-weight:800}
-.fav-row .more-btn{
-  border:0;background:var(--purple-soft);color:var(--purple);
-  border-radius:20px;padding:6px 12px;font-size:13px;font-weight:800;
-  font-family:inherit;
+.chips{
+  display:flex;
+  gap:10px;
+  padding:4px 0 12px;
+  overflow-x:auto;
+  overflow-y:hidden;
+  scroll-snap-type:x proximity;
 }
-.chips{display:flex;gap:8px;overflow-x:auto;padding:2px 0 10px}
 .chips::-webkit-scrollbar{display:none}
+.favorite-card{
+  position:relative;
+  flex:0 0 104px;
+  min-height:108px;
+  border:1.5px solid var(--border);
+  background:white;
+  border-radius:22px;
+  padding:10px 10px 12px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  font-family:inherit;
+  transition:all .15s;
+  box-shadow:var(--shadow);
+  scroll-snap-align:start;
+}
+.favorite-card:active{transform:scale(.97)}
+.favorite-card.active{
+  background:linear-gradient(180deg,#F7F0FF 0%,#FFFFFF 100%);
+  border-color:var(--purple);
+  box-shadow:0 8px 20px rgba(94,63,140,.16);
+}
+.favorite-badge{
+  position:absolute;
+  top:8px;
+  right:8px;
+  min-width:20px;
+  height:20px;
+  border-radius:10px;
+  background:#FFF7D9;
+  color:#E6AA42;
+  display:grid;
+  place-items:center;
+  font-size:11px;
+  font-weight:800;
+}
+.favorite-thumb{
+  width:64px;
+  height:64px;
+  border-radius:18px;
+  background:linear-gradient(180deg,#FFF9EF 0%,#FFF3DE 100%);
+  border:1.5px solid #F1DFC1;
+  display:grid;
+  place-items:center;
+  overflow:hidden;
+}
+.favorite-outline-svg{
+  width:50px;
+  height:50px;
+}
+.favorite-name{
+  font-size:15px;
+  font-weight:800;
+  color:var(--ink);
+  line-height:1.2;
+}
 .chip{
   flex-shrink:0;
   min-width:64px;border:1.5px solid var(--border);background:white;
@@ -325,6 +385,25 @@ textarea{
 /* ══════════════════════
    커뮤니티 화면
 ══════════════════════ */
+/* 이웃 일기 블로그형 카드 */
+.nblog-card{
+  padding:0;overflow:hidden;margin-bottom:12px;
+}
+.nblog-img{
+  width:100%;aspect-ratio:16/9;background:#FFF1DA;
+  display:grid;place-items:center;font-size:56px;
+  border-bottom:1.5px solid var(--border);
+}
+.nblog-img img{width:100%;height:100%;object-fit:cover;display:block}
+.nblog-info{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:10px 14px 2px;
+}
+.nblog-author{font-size:15px;font-weight:900;color:var(--text)}
+.nblog-time{font-size:12px;color:var(--muted);font-weight:700}
+.nblog-desc{font-size:14px;color:var(--muted);line-height:1.55;padding:2px 14px 14px;margin:0}
+
+/* 기존 가로형 피드카드 (내 일기 등에서 사용) */
 .feed-card{
   padding:14px;margin-bottom:10px;
   display:grid;grid-template-columns:68px 1fr;gap:12px;align-items:center;
@@ -435,19 +514,19 @@ button.feed-card.my-diary-card:active{transform:scale(.98)}
    바텀 네비
 ══════════════════════ */
 nav{
-  position:absolute;left:14px;right:14px;bottom:14px;height:62px;
+  position:absolute;left:14px;right:14px;bottom:14px;height:76px;
   background:rgba(255,253,247,.96);border:1.5px solid var(--border);
-  border-radius:32px;display:grid;grid-template-columns:repeat(5,1fr);
-  padding:7px;box-shadow:0 8px 28px rgba(60,40,10,.14);
+  border-radius:32px;display:grid;grid-template-columns:repeat(4,1fr);
+  padding:8px;box-shadow:0 8px 28px rgba(60,40,10,.14);
   backdrop-filter:blur(12px);flex-shrink:0;
 }
 nav button{
-  border:0;background:transparent;border-radius:22px;
+  border:0;background:transparent;border-radius:24px;
   color:var(--muted);font-weight:800;font-size:11px;font-family:inherit;
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
   transition:all .2s;
 }
-nav button .nav-icon{font-size:19px;line-height:1}
+nav button .nav-icon{font-size:22px;line-height:1}
 nav button.active{background:var(--purple-soft);color:var(--purple)}
 
 /* ══════════════════════
@@ -484,6 +563,167 @@ nav button.active{background:var(--purple-soft);color:var(--purple)}
 /* 애니메이션 */
 @keyframes slide-up{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
 .screen.active{animation:slide-up .25s ease}
+
+/* ── 크게 그리기 버튼 ── */
+.expand-btn{
+  position:absolute;top:10px;left:10px;
+  width:50px;height:50px;border-radius:50%;border:0;
+  background:linear-gradient(135deg,var(--purple),var(--purple2));
+  color:white;font-weight:800;
+  box-shadow:0 4px 14px rgba(94,63,140,.4);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:1px;z-index:10;font-family:inherit;transition:transform .15s;
+}
+.expand-btn:active{transform:scale(.94)}
+.expand-btn small{font-size:9px;font-weight:800}
+
+/* ── 하루 홈 화면 ── */
+.haru-home-greeting{
+  padding:16px 18px;display:flex;flex-direction:column;gap:4px;
+  background:linear-gradient(120deg,#FFF8E7,#FDE8C8);
+  border:1.5px solid var(--border);
+}
+.haru-home-date{font-size:14px;font-weight:800;color:var(--muted)}
+.haru-home-msg{font-size:17px;font-weight:900;color:var(--purple)}
+.haru-draw-btn{
+  width:100%;padding:22px 20px;border:0;border-radius:20px;
+  background:linear-gradient(135deg,var(--purple) 0%,#9B6CD8 100%);
+  color:white;display:flex;flex-direction:column;align-items:center;gap:6px;
+  box-shadow:0 8px 24px rgba(94,63,140,.30);cursor:pointer;
+  transition:transform .15s,box-shadow .15s;
+}
+.haru-draw-btn:active{transform:scale(.97);box-shadow:0 4px 12px rgba(94,63,140,.25)}
+.haru-draw-icon{font-size:44px;line-height:1}
+.haru-draw-label{font-size:24px;font-weight:900;font-family:inherit;letter-spacing:-0.5px}
+.haru-draw-sub{font-size:13px;opacity:.85;font-weight:700;font-family:inherit}
+.haru-game-btn{
+  width:100%;padding:14px 16px;border:0;border-radius:18px;
+  background:linear-gradient(120deg,#FFF3E0,#FFE8F5);
+  border:1.5px solid #F5C8A0;
+  display:flex;align-items:center;gap:12px;cursor:pointer;
+  transition:transform .15s,box-shadow .15s;
+  box-shadow:0 2px 10px rgba(200,120,60,.10);
+}
+.haru-game-btn:active{transform:scale(.97)}
+.haru-game-icon{font-size:32px;flex-shrink:0}
+.haru-game-texts{display:flex;flex-direction:column;align-items:flex-start;gap:2px;flex:1}
+.haru-game-label{font-size:16px;font-weight:900;color:var(--text);font-family:inherit}
+.haru-game-sub{font-size:12px;font-weight:700;color:var(--muted);font-family:inherit}
+.haru-game-arrow{font-size:24px;color:#D49060;font-weight:900;flex-shrink:0}
+
+.haru-today-wrap{display:flex;flex-direction:column;gap:0}
+.haru-today-label{
+  font-size:13px;font-weight:800;color:var(--muted);
+  padding:4px 2px 8px;
+}
+.haru-today-card{
+  border:1.5px solid var(--border);border-radius:20px;
+  overflow:hidden;background:white;cursor:pointer;
+  transition:transform .15s;
+}
+.haru-today-card:active{transform:scale(.98)}
+.haru-today-img{
+  width:100%;aspect-ratio:4/3;background:#FFF8E7;
+  display:grid;place-items:center;
+}
+.haru-today-img img{width:100%;height:100%;object-fit:cover;display:block}
+.haru-today-footer{
+  padding:10px 14px;display:flex;align-items:center;justify-content:space-between;
+  border-top:1.5px solid var(--border);
+}
+.haru-today-status{font-size:13px;font-weight:800;color:var(--purple)}
+.haru-today-action{font-size:13px;font-weight:800;color:var(--muted)}
+.haru-today-blank{background:#FAF5EC;border-bottom:1.5px solid var(--border)}
+.haru-blank-inner{display:flex;flex-direction:column;align-items:center;gap:8px}
+.haru-blank-msg{font-size:13px;font-weight:700;color:var(--muted);text-align:center;line-height:1.6}
+
+/* ── 폰 가로 전환 ── */
+.phone{transition:width .4s cubic-bezier(.4,0,.2,1),height .4s cubic-bezier(.4,0,.2,1),border-radius .4s ease}
+.phone.landscape-mode{
+  width:min(100dvh - 24px, 844px) !important;
+  height:min(100vw - 24px, 390px) !important;
+  min-height:unset !important;
+  border-radius:28px !important;
+}
+/* ── 가로 모드 오버레이 (폰 내부) ── */
+.landscape-overlay{
+  position:absolute;inset:0;z-index:200;
+  display:none;flex-direction:row;
+}
+.landscape-overlay.active{display:flex}
+/* 공통 세로 사이드바 */
+.l-sidebar{
+  display:flex;flex-direction:column;align-items:center;
+  gap:4px;padding:8px 6px;background:var(--bg);
+  overflow:hidden;flex-shrink:0;
+}
+.l-left{width:90px;border-right:1.5px solid var(--border)}
+.l-right{width:130px;border-left:1.5px solid var(--border);overflow-y:auto}
+/* 캔버스 중간 컬럼 */
+.l-canvas-col{
+  flex:1;display:flex;flex-direction:column;background:var(--bg);min-width:0;
+}
+/* 캔버스 상단 버튼바 */
+.l-canvas-topbar{
+  height:44px;display:flex;align-items:center;justify-content:flex-end;
+  padding:0 10px;gap:7px;flex-shrink:0;
+}
+.l-topbar-btn{
+  width:34px;height:34px;border:0;border-radius:50%;
+  font-weight:800;font-family:inherit;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:transform .15s;flex-shrink:0;
+}
+.l-topbar-btn:active{transform:scale(.9)}
+.l-help-btn{background:var(--purple-soft);color:var(--purple);font-size:15px}
+.l-x-btn{background:#FFE8E6;color:var(--red);font-size:20px}
+/* 캔버스 영역 (공간 느낌 주는 여백) */
+#landscapeCanvasArea{
+  flex:1;position:relative;overflow:hidden;background:white;touch-action:none;
+  margin:0 10px 10px;border-radius:14px;
+  border:2px solid var(--border2);
+  box-shadow:0 4px 16px rgba(63,51,40,.10);
+}
+#landscapeCanvas{width:100%;height:100%;display:block;touch-action:none}
+/* 가로 구분선 */
+.l-hsep{width:100%;height:1px;background:var(--border);flex-shrink:0}
+/* 색상 2×5 그리드 */
+.l-color-grid{
+  display:grid;grid-template-columns:repeat(2,22px);gap:4px;
+  justify-content:center;flex-shrink:0;
+}
+.l-c{
+  width:22px;height:22px;border-radius:50%;
+  border:2px solid white;box-shadow:0 1px 4px rgba(0,0,0,.18);transition:transform .15s;
+}
+.l-c.active{transform:scale(1.15);box-shadow:0 0 0 2.5px var(--purple)}
+/* 도구 버튼 (가로 아이콘+텍스트) */
+.l-tbtn{
+  width:100%;height:34px;border:1.5px solid var(--border);background:white;
+  border-radius:10px;font-weight:800;color:var(--ink);
+  font-size:12px;font-family:inherit;display:flex;flex-direction:row;
+  align-items:center;gap:6px;padding:0 10px;flex-shrink:0;transition:all .15s;
+}
+.l-tbtn .ti{font-size:17px;line-height:1;flex-shrink:0}
+.l-tbtn:active{transform:scale(.97)}
+.l-tbtn.active{background:var(--purple);color:white;border-color:var(--purple)}
+.l-tbtn.er.active{background:var(--orange);border-color:var(--orange)}
+/* 오른쪽 윤곽선 그리드 */
+.l-out-grid{
+  display:grid;grid-template-columns:repeat(2,1fr);gap:5px;width:100%;flex-shrink:0;
+}
+.l-out-item{
+  border:1.5px solid var(--border);background:white;
+  border-radius:10px;padding:5px 3px;font-weight:800;font-size:10px;color:var(--ink);
+  font-family:inherit;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:3px;transition:all .15s;
+}
+.l-out-item:active{transform:scale(.94);border-color:var(--purple)}
+.l-out-item svg{width:36px;height:36px}
+.l-right-label{
+  font-size:10px;font-weight:800;color:var(--muted);text-align:center;
+  width:100%;flex-shrink:0;padding-bottom:2px;
+}
 </style>
 </head>
 <body>
@@ -517,8 +757,34 @@ nav button.active{background:var(--purple-soft);color:var(--purple)}
   <!-- 메인 -->
   <main>
 
-    <!-- ① 그리기 화면 -->
-    <section id="draw" class="screen active">
+    <!-- ① 하루 홈 화면 -->
+    <section id="haru" class="screen active">
+      <div class="haru-home-greeting card">
+        <div class="haru-home-date" id="haruHomeDate"></div>
+        <div class="haru-home-msg">오늘도 소중한 하루예요 🌷</div>
+      </div>
+      <!-- 오늘 그린 일기 미리보기 -->
+      <div id="haruTodayPreview" class="haru-today-wrap"></div>
+
+      <button class="haru-draw-btn" onclick="enterDrawMode()">
+        <span class="haru-draw-icon">🎨</span>
+        <span class="haru-draw-label">그림 그리기</span>
+        <span class="haru-draw-sub">오늘의 그림일기를 시작해요</span>
+      </button>
+
+      <!-- 미니게임 -->
+      <button class="haru-game-btn" onclick="enterPuzzleMode()">
+        <span class="haru-game-icon">🧩</span>
+        <div class="haru-game-texts">
+          <span class="haru-game-label">내 일기 퍼즐</span>
+          <span class="haru-game-sub">지난 그림으로 퍼즐을 맞춰봐요</span>
+        </div>
+        <span class="haru-game-arrow">›</span>
+      </button>
+    </section>
+
+    <!-- ② 그리기 화면 (탭 없이 흐름으로 접근) -->
+    <section id="draw" class="screen">
       <div class="draw-date-bar card">
         <span class="date-txt">📅 오늘 5월 16일 토요일</span>
         <span class="weather">☀️ 맑음</span>
@@ -531,6 +797,10 @@ nav button.active{background:var(--purple-soft);color:var(--purple)}
           오늘의 그림을 그려보세요<br>
           <small>아래 윤곽선을 눌러 따라 그려도 좋아요</small>
         </div>
+        <!-- 크게 그리기 버튼 -->
+        <button class="expand-btn" onclick="enterLandscapeMode()">
+          <span style="font-size:18px">⛶</span><small>크게</small>
+        </button>
         <!-- 마이크 버튼 -->
         <button class="mic-overlay" id="micBtn" onclick="startVoiceOutline()">
           <span>🎤</span><small>윤곽선</small>
@@ -572,23 +842,12 @@ nav button.active{background:var(--purple-soft);color:var(--purple)}
       <!-- 즐겨찾기 윤곽선 -->
       <div class="fav-row">
         <span class="label">⭐ 자주 쓰는 윤곽선</span>
-        <button class="more-btn" onclick="showScreen('outline',navBtns[0])">전체 보기</button>
       </div>
       <div id="favoriteChips" class="chips"></div>
 
       <!-- 완성하기 -->
       <button class="finish-btn" onclick="goToDiary()">
         ✍️ 그림일기로 완성하기
-      </button>
-    </section>
-
-    <!-- ② 윤곽선 라이브러리 화면 -->
-    <section id="outline" class="screen">
-      <input id="outlineSearch" class="search-input" placeholder="🔍  검색: 꽃, 강아지, 가족..." oninput="renderOutlines()"/>
-      <div class="cat-row" id="categoryRow"></div>
-      <div id="outlineGrid" class="outline-grid"></div>
-      <button class="finish-btn" style="margin-top:16px" onclick="showScreen('draw',navBtns[0])">
-        ← 캔버스로 돌아가기
       </button>
     </section>
 
@@ -635,40 +894,44 @@ nav button.active{background:var(--purple-soft);color:var(--purple)}
       <button class="save-btn" onclick="saveDiary()">
         💾 일기 저장하기
       </button>
+
     </section>
 
-    <!-- ④ 커뮤니티 화면 -->
-    <section id="community" class="screen">
-      <div class="section-title">이웃 일기</div>
-      <div class="feed-card card">
-        <div class="thumb">🌸</div>
-        <div>
-          <b>이웃 박○○님</b>
-          <p>강아지와 공원 산책하고 그린 그림이에요</p>
-          <small>방금 전 · 공개</small>
-        </div>
-      </div>
-      <div class="feed-card card">
-        <div class="thumb">⭐</div>
-        <div>
-          <b>친구 김○○님</b>
-          <p>손자가 그려준 별을 따라 그렸어요</p>
-          <small>1시간 전 · 공개</small>
-        </div>
-      </div>
-      <div class="feed-card card">
-        <div class="thumb">🌺</div>
-        <div>
-          <b>이웃 최○○님</b>
-          <p>베란다 화분에 꽃이 피었어요. 너무 예뻐서!</p>
-          <small>어제 · 공개</small>
-        </div>
-      </div>
-      <div class="section-title">내가 그린 그림일기</div>
+    <!-- ④ 나 - 내 그림일기 화면 -->
+    <section id="mydiaries" class="screen">
+      <div class="section-title">📚 내가 그린 그림일기</div>
       <p id="myDiariesEmpty" class="my-diaries-empty" hidden>
         아직 저장한 그림일기가 없어요.<br/>그림을 그리고 일기 저장하기를 눌러보세요.
       </p>
       <div id="myDiariesList"></div>
+    </section>
+
+    <!-- ⑤ 이웃 일기 화면 -->
+    <section id="community" class="screen">
+      <div class="nblog-card card">
+        <div class="nblog-img"><span>🌸</span></div>
+        <div class="nblog-info">
+          <span class="nblog-author">이웃 박○○님</span>
+          <span class="nblog-time">방금 전</span>
+        </div>
+        <p class="nblog-desc">강아지와 공원 산책하고 그린 그림이에요</p>
+      </div>
+      <div class="nblog-card card">
+        <div class="nblog-img"><span>⭐</span></div>
+        <div class="nblog-info">
+          <span class="nblog-author">친구 김○○님</span>
+          <span class="nblog-time">1시간 전</span>
+        </div>
+        <p class="nblog-desc">손자가 그려준 별을 따라 그렸어요</p>
+      </div>
+      <div class="nblog-card card">
+        <div class="nblog-img"><span>🌺</span></div>
+        <div class="nblog-info">
+          <span class="nblog-author">이웃 최○○님</span>
+          <span class="nblog-time">어제</span>
+        </div>
+        <p class="nblog-desc">베란다 화분에 꽃이 피었어요. 너무 예뻐서!</p>
+      </div>
     </section>
 
     <!-- ⑤ 책 만들기 화면 -->
@@ -737,17 +1000,14 @@ nav button.active{background:var(--purple-soft);color:var(--purple)}
 
   <!-- 바텀 네비 -->
   <nav>
-    <button class="active" onclick="showScreen('draw',this)">
-      <span class="nav-icon">🎨</span><span>그리기</span>
+    <button class="active" onclick="showScreen('haru',this)">
+      <span class="nav-icon">🌼</span><span>하루</span>
     </button>
-    <button onclick="showScreen('outline',this)">
-      <span class="nav-icon">✏️</span><span>윤곽선</span>
-    </button>
-    <button onclick="showScreen('diary',this)">
-      <span class="nav-icon">📔</span><span>일기</span>
+    <button onclick="showScreen('mydiaries',this)">
+      <span class="nav-icon">📔</span><span>나</span>
     </button>
     <button onclick="showScreen('community',this)">
-      <span class="nav-icon">🌍</span><span>공개</span>
+      <span class="nav-icon">🌍</span><span>이웃</span>
     </button>
     <button onclick="showScreen('book',this)">
       <span class="nav-icon">📖</span><span>책·연결</span>
@@ -768,6 +1028,68 @@ nav button.active{background:var(--purple-soft);color:var(--purple)}
   </div>
 
   <div id="toast" class="toast"></div>
+
+  <!-- 가로 모드 오버레이 (폰 내부) -->
+  <div id="landscapeOverlay" class="landscape-overlay">
+
+    <!-- 왼쪽: 그리기 도구 -->
+    <div class="l-sidebar l-left">
+      <!-- 펜 (상단 고정) -->
+      <button class="l-tbtn active" id="lPen" onclick="setLT('pen',this)">
+        <span class="ti">✏️</span>펜
+      </button>
+      <div class="l-hsep"></div>
+      <!-- 색상 2×5 그리드 -->
+      <div class="l-color-grid">
+        <button class="l-c active" id="lc0" style="background:#3F3328" onclick="setLC('#3F3328',this)" title="검정"></button>
+        <button class="l-c" style="background:#D86B61" onclick="setLC('#D86B61',this)" title="빨강"></button>
+        <button class="l-c" style="background:#E8845A" onclick="setLC('#E8845A',this)" title="주황"></button>
+        <button class="l-c" style="background:#F0C419" onclick="setLC('#F0C419',this)" title="노랑"></button>
+        <button class="l-c" style="background:#7BAF68" onclick="setLC('#7BAF68',this)" title="초록"></button>
+        <button class="l-c" style="background:#5E9EC7" onclick="setLC('#5E9EC7',this)" title="하늘"></button>
+        <button class="l-c" style="background:#5E3F8C" onclick="setLC('#5E3F8C',this)" title="보라"></button>
+        <button class="l-c" style="background:#C97B9C" onclick="setLC('#C97B9C',this)" title="분홍"></button>
+        <button class="l-c" style="background:#8B6914" onclick="setLC('#8B6914',this)" title="갈색"></button>
+        <button class="l-c" style="background:#FFFFFF;border-color:#D4C4A0" onclick="setLC('#FFFFFF',this)" title="흰색"></button>
+      </div>
+      <div class="l-hsep"></div>
+      <!-- 도구 -->
+      <button class="l-tbtn" onclick="setLT('thick',this)">
+        <span class="ti">🖌️</span>굵은펜
+      </button>
+      <button class="l-tbtn er" onclick="setLT('eraser',this)">
+        <span class="ti">🧹</span>지우개
+      </button>
+      <button class="l-tbtn" onclick="undoL()">
+        <span class="ti">↩️</span>되돌리기
+      </button>
+      <button class="l-tbtn" onclick="clearL()">
+        <span class="ti">🗑️</span>전체지우기
+      </button>
+    </div>
+
+    <!-- 가운데: 캔버스 -->
+    <div class="l-canvas-col">
+      <div class="l-canvas-topbar">
+        <button class="l-topbar-btn l-help-btn" onclick="showLHelp()" title="도움말">?</button>
+        <button class="l-topbar-btn l-x-btn" onclick="exitLandscapeMode()" title="메인화면으로">✕</button>
+      </div>
+      <div id="landscapeCanvasArea">
+        <canvas id="landscapeCanvas"></canvas>
+        <canvas id="lOutlineCanvas" style="position:absolute;inset:0;width:100%;height:100%;touch-action:none;display:none;z-index:2"></canvas>
+        <div id="lOvBtns" style="display:none;position:absolute;bottom:10px;left:50%;transform:translateX(-50%);z-index:3;gap:8px;flex-direction:row">
+          <button onclick="applyLOutline()" style="padding:8px 18px;background:var(--purple);color:white;border:0;border-radius:20px;font-size:14px;font-weight:800;font-family:inherit">배치 완료</button>
+          <button onclick="cancelLOutline()" style="padding:8px 18px;background:#eee;color:#555;border:0;border-radius:20px;font-size:14px;font-weight:800;font-family:inherit">취소</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 오른쪽: 윤곽선 -->
+    <div class="l-sidebar l-right" id="lOutlineBar">
+      <!-- JS로 렌더링 -->
+    </div>
+
+  </div>
 </div>
 
 <script>
@@ -852,6 +1174,7 @@ let drawing = false;
 let navBtns = [];
 let myDiaries = [];
 let activeDiaryIndex = null;
+
 
 function escapeHtml(value) {
   return String(value ?? "")
@@ -1312,15 +1635,35 @@ function toggleFavorite(name, e){
   renderFavorites();
 }
 function renderFavorites(){
-  document.getElementById("favoriteChips").innerHTML =
-    favorites.map((name,i)=>
-      `<button class="chip ${i===0?'active':''}" onclick="stamp('${name}')">${name}</button>`
-    ).join("");
+  const cards = favorites
+    .slice(0, 6)
+    .map((name, i) => {
+      const found = outlines.find(([outlineName]) => outlineName === name);
+      const path = found?.[2];
+      const thumb = path
+        ? makeSVG(path, "favorite-outline-svg")
+        : `<div class="favorite-outline-svg" style="display:grid;place-items:center;color:var(--muted);font-size:28px">?</div>`;
+      return `
+        <button
+          class="favorite-card ${i===0 ? 'active' : ''}"
+          onclick='stamp(${JSON.stringify(name)})'
+          data-outline-name="${escapeHtml(name)}"
+          aria-label="${escapeHtml(name)} 윤곽선"
+        >
+          <span class="favorite-badge">★</span>
+          <div class="favorite-thumb">${thumb}</div>
+          <div class="favorite-name">${escapeHtml(name)}</div>
+        </button>
+      `;
+    })
+    .join("");
+
+  document.getElementById("favoriteChips").innerHTML = cards;
 }
 
 // ── 윤곽선 그리드 ──
-function makeSVG(pathData){
-  return `<svg class="outline-svg" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+function makeSVG(pathData, className = "outline-svg"){
+  return `<svg class="${className}" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
     <path d="${pathData}" stroke="#8B735B" stroke-width="1.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
   </svg>`;
 }
@@ -1351,17 +1694,84 @@ function showScreen(id, btn){
     document.querySelectorAll("nav button").forEach(b=>b.classList.remove("active"));
     btn.classList.add("active");
   }
-  if(id==="outline"){ renderFavorites(); renderOutlines(); }
-  if(id==="community" || id==="book") loadMyDiaries();
+  if(id==="mydiaries" || id==="community" || id==="book") loadMyDiaries();
+  if(id==="haru") refreshHaruPreview();
 }
 
-// ── 일기 화면 ──
+// ── 미니게임 ──
+function enterPuzzleMode(){
+  toast('퍼즐 게임을 준비 중이에요 🧩');
+}
+
+// ── 하루 탭 오늘 일기 미리보기 ──
+function refreshHaruPreview(){
+  const wrap = document.getElementById('haruTodayPreview');
+  if(!wrap) return;
+
+  // 1) 그리던 중인 그림이 있으면 캔버스 미리보기
+  if(strokes && strokes.length > 0){
+    const dataUrl = canvas.toDataURL('image/png');
+    wrap.innerHTML = `
+      <div class="haru-today-label">✏️ 그리던 그림</div>
+      <div class="haru-today-card" onclick="enterDrawMode()">
+        <div class="haru-today-img"><img src="${dataUrl}" alt="그리던 그림"></div>
+        <div class="haru-today-footer">
+          <span class="haru-today-status">계속 그리기</span>
+          <span class="haru-today-action">탭하면 이어 그릴 수 있어요 →</span>
+        </div>
+      </div>`;
+    return;
+  }
+
+  // 2) 오늘 저장한 일기가 있으면 표시
+  const saved = JSON.parse(localStorage.getItem('haruDiaries2')||'[]');
+  const todayStr = new Date().toISOString().split('T')[0];
+  const todayDiary = saved.find(d => (d.date||'').startsWith(todayStr));
+  if(todayDiary){
+    const imgTag = todayDiary.image
+      ? `<img src="${todayDiary.image}" alt="오늘 일기">`
+      : `<span style="font-size:48px">📔</span>`;
+    wrap.innerHTML = `
+      <div class="haru-today-label">📔 오늘 그린 일기</div>
+      <div class="haru-today-card" onclick="showScreen('mydiaries',navBtns[1])">
+        <div class="haru-today-img">${imgTag}</div>
+        <div class="haru-today-footer">
+          <span class="haru-today-status">저장 완료 ✅</span>
+          <span class="haru-today-action">내 일기에서 보기 →</span>
+        </div>
+      </div>`;
+    return;
+  }
+
+  // 3) 아무것도 없으면 빈 프레임
+  wrap.innerHTML = `
+    <div class="haru-today-label">🖼️ 오늘의 그림일기</div>
+    <div class="haru-today-card" onclick="enterDrawMode()">
+      <div class="haru-today-img haru-today-blank">
+        <div class="haru-blank-inner">
+          <span style="font-size:40px">🎨</span>
+          <span class="haru-blank-msg">아직 오늘 그림이 없어요<br>아래 버튼을 눌러 시작해봐요</span>
+        </div>
+      </div>
+      <div class="haru-today-footer">
+        <span class="haru-today-status" style="color:var(--muted)">오늘 일기 없음</span>
+        <span class="haru-today-action">그리기 시작하기 →</span>
+      </div>
+    </div>`;
+}
+
+// ── 그리기 시작 (하루 탭 → 그리기 화면) ──
+function enterDrawMode(){
+  showScreen("draw", navBtns[0]); // 하루 탭 강조 유지
+  speak("그림을 그려볼까요?");
+}
+
+// ── 그림 완성하기 (그리기 → 일기 작성) ──
 function goToDiary(){
   const preview = document.getElementById("diaryPreview");
   const dataUrl = canvas.toDataURL("image/png");
   preview.innerHTML = `<img src="${dataUrl}" alt="오늘의 그림"/>`;
-  showScreen("diary", navBtns[2]);
-  // AI 첫 메시지 (TTS)
+  showScreen("diary", navBtns[0]); // 하루 탭 강조 유지
   setTimeout(()=>{
     speak("그림일기를 완성해볼까요? 오늘 있었던 일을 적어보세요.");
   }, 400);
@@ -1460,6 +1870,7 @@ async function saveDiary(){
     toast('그림일기를 저장했어요 💾')
     speak('그림일기를 저장했어요. 오늘도 수고하셨어요!')
     await loadMyDiaries()
+    showScreen('mydiaries', navBtns[1])
 
   } catch(err) {
     console.error(err)
@@ -1477,10 +1888,346 @@ function toast(msg){
   toastTimer = setTimeout(()=>t.classList.remove("show"), 2200);
 }
 
+// ── 가로 모드 그리기 ──
+let lc_ = null, lx_ = null, lDraw_ = false, lCurr_ = null, lStk_ = [], lTool_ = 'pen', lColor_ = '#3F3328', lBase_ = null;
+
+function enterLandscapeMode(){
+  lc_ = document.getElementById('landscapeCanvas');
+  lx_ = lc_.getContext('2d');
+  lTool_ = tool; lColor_ = color;
+
+  // 폰 프레임을 가로로 전환 + 오버레이 표시
+  document.querySelector('.phone').classList.add('landscape-mode');
+  document.getElementById('landscapeOverlay').classList.add('active');
+
+  lStk_ = []; lBase_ = null; lOv_ = null; lov_ = null; lovx_ = null;
+  renderLOutlines();
+  // CSS transition(0.4s) 완료 후 캔버스 초기화
+  setTimeout(initLC, 450);
+  toast('크게 그리기 모드예요. 완료를 누르면 저장돼요 📐');
+  speak('크게 그리기 모드입니다.');
+}
+
+function initLC(){
+  const area = document.getElementById('landscapeCanvasArea');
+  const box = area.getBoundingClientRect();
+  const dpr = devicePixelRatio;
+  lc_.width  = Math.floor(box.width  * dpr);
+  lc_.height = Math.floor(box.height * dpr);
+  lx_.scale(dpr, dpr);
+
+  const img = new Image();
+  img.onload = ()=>{
+    lx_.drawImage(img, 0, 0, box.width, box.height);
+    lBase_ = lc_.toDataURL();
+  };
+  img.src = canvas.toDataURL();
+
+  setupLC_();
+}
+
+function setupLC_(){
+  lc_.onpointerdown = e=>{
+    lDraw_ = true;
+    const p = lPos_(e);
+    lCurr_ = {color:lColor_, tool:lTool_, points:[p]};
+    lx_.beginPath(); lx_.moveTo(p.x, p.y);
+    e.preventDefault();
+  };
+  lc_.onpointermove = e=>{
+    if(!lDraw_) return;
+    e.preventDefault();
+    const p = lPos_(e);
+    if(lCurr_) lCurr_.points.push(p);
+    const pts = lCurr_.points, len = pts.length;
+    if(len >= 3){
+      const prev = pts[len-2], mid = {x:(prev.x+p.x)/2, y:(prev.y+p.y)/2};
+      lx_.lineWidth = lTool_==='eraser' ? 28 : lTool_==='thick' ? 10 : 5;
+      lx_.lineCap = lx_.lineJoin = 'round';
+      lx_.strokeStyle = lTool_==='eraser' ? '#FFFFFF' : lColor_;
+      lx_.quadraticCurveTo(prev.x, prev.y, mid.x, mid.y);
+      lx_.stroke();
+      lx_.beginPath(); lx_.moveTo(mid.x, mid.y);
+    }
+  };
+  lc_.onpointerup   = ()=>{ if(lCurr_) lStk_.push(lCurr_); lCurr_=null; lDraw_=false; };
+  lc_.onpointerleave = ()=>{ lDraw_=false; };
+}
+
+function lPos_(e){
+  const r = lc_.getBoundingClientRect(), p = e.touches ? e.touches[0] : e;
+  return {x:p.clientX - r.left, y:p.clientY - r.top};
+}
+
+function setLC(c, btn){
+  lColor_ = c;
+  setLT('pen', document.getElementById('lPen'));
+  document.querySelectorAll('.l-c').forEach(d=>d.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+}
+
+function setLT(t, btn){
+  lTool_ = t;
+  document.querySelectorAll('.l-tbtn').forEach(b=>b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+}
+
+// 오른쪽 윤곽선 바 렌더링
+function renderLOutlines(){
+  const bar = document.getElementById('lOutlineBar');
+  if(!bar) return;
+  const label = '<div class="l-right-label">⭐ 윤곽선</div>';
+  const items = favorites.slice(0, 10).map(name => {
+    const found = outlines.find(([n]) => n === name);
+    const path = found?.[2] || '';
+    const svg = path
+      ? `<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="${path}" stroke="#8B735B" stroke-width="1.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>`
+      : `<span style="font-size:22px">?</span>`;
+    return `<button class="l-out-item" onclick="stampL('${name}')">${svg}<span>${name}</span></button>`;
+  }).join('');
+  bar.innerHTML = label + `<div class="l-out-grid">${items}</div>`;
+}
+
+// 도움말
+function showLHelp(){
+  toast('왼쪽: 색상·도구 선택  |  오른쪽: 윤곽선 따라 그리기  |  ✕: 메인화면으로');
+  speak('왼쪽에서 색상과 도구를 고르고, 오른쪽 윤곽선을 눌러 따라 그려보세요.');
+}
+
+// ── 윤곽선 인터랙티브 오버레이 ──
+let lOv_ = null; // { name, pathData, cx, cy, scale, rot, baseScale }
+let lov_ = null, lovx_ = null; // overlay canvas & context
+let _lOvPtrs = {}; // active pointers for gesture
+
+function stampL(name){
+  const found = outlines.find(([n]) => n === name);
+  if(!found) return;
+  const [,, pathData] = found;
+  const box = document.getElementById('landscapeCanvasArea').getBoundingClientRect();
+  const w = box.width, h = box.height;
+  const bs = Math.min(w, h) * 0.55 / 24;
+  lOv_ = { name, pathData, cx: w/2, cy: h/2, scale: bs, rot: 0, baseScale: bs };
+  _initLOvCanvas(w, h);
+  _setupLOvEvents();
+  drawLOv();
+  document.getElementById('lOvBtns').style.display = 'flex';
+  // disable main canvas drawing while overlay active
+  lc_.style.pointerEvents = 'none';
+  toast(`${name} 윤곽선 - 이동·두손가락으로 크기·회전 조절`);
+  speak(`${name} 윤곽선을 배치하세요`);
+}
+
+function _initLOvCanvas(w, h){
+  lov_ = document.getElementById('lOutlineCanvas');
+  const dpr = devicePixelRatio;
+  lov_.width  = Math.floor(w * dpr);
+  lov_.height = Math.floor(h * dpr);
+  lovx_ = lov_.getContext('2d');
+  lovx_.scale(dpr, dpr);
+  lov_.style.display = 'block';
+}
+
+function drawLOv(){
+  if(!lOv_ || !lovx_) return;
+  const lov = lov_, lx = lovx_;
+  const w = lov.width / devicePixelRatio, h = lov.height / devicePixelRatio;
+  lx.clearRect(0, 0, w, h);
+  const { pathData, cx, cy, scale, rot } = lOv_;
+  lx.save();
+  lx.translate(cx, cy);
+  lx.rotate(rot);
+  lx.scale(scale, scale);
+  lx.translate(-12, -12); // center of 24×24 viewBox
+  const p2d = new Path2D(pathData);
+  lx.strokeStyle = '#7B5EA7';
+  lx.lineWidth = 1.8 / scale;
+  lx.setLineDash([3/scale, 4/scale]);
+  lx.lineCap = 'round';
+  lx.stroke(p2d);
+  lx.setLineDash([]);
+  lx.restore();
+  // selection ring
+  lx.save();
+  lx.translate(cx, cy);
+  lx.rotate(rot);
+  const r = scale * 14;
+  lx.strokeStyle = 'rgba(123,94,167,0.4)';
+  lx.lineWidth = 1.5;
+  lx.setLineDash([5, 4]);
+  lx.beginPath(); lx.arc(0, 0, r, 0, Math.PI*2); lx.stroke();
+  lx.setLineDash([]);
+  lx.restore();
+}
+
+function _setupLOvEvents(){
+  _lOvPtrs = {};
+  let _drag0 = null, _pinch0 = null;
+
+  lov_.onpointerdown = e=>{
+    e.preventDefault();
+    lov_.setPointerCapture(e.pointerId);
+    _lOvPtrs[e.pointerId] = { x: e.clientX, y: e.clientY };
+    const ptrs = Object.values(_lOvPtrs);
+    if(ptrs.length === 1){
+      _drag0 = { px: e.clientX, py: e.clientY, cx: lOv_.cx, cy: lOv_.cy };
+      _pinch0 = null;
+    } else if(ptrs.length === 2){
+      _drag0 = null;
+      const dx = ptrs[1].x - ptrs[0].x, dy = ptrs[1].y - ptrs[0].y;
+      _pinch0 = { dist: Math.hypot(dx, dy), angle: Math.atan2(dy, dx), scale: lOv_.scale, rot: lOv_.rot };
+    }
+  };
+
+  lov_.onpointermove = e=>{
+    e.preventDefault();
+    if(!_lOvPtrs[e.pointerId]) return;
+    _lOvPtrs[e.pointerId] = { x: e.clientX, y: e.clientY };
+    const ptrs = Object.values(_lOvPtrs);
+    const rect = lov_.getBoundingClientRect();
+
+    if(ptrs.length === 1 && _drag0){
+      const dx = e.clientX - _drag0.px, dy = e.clientY - _drag0.py;
+      lOv_.cx = _drag0.cx + dx;
+      lOv_.cy = _drag0.cy + dy;
+      drawLOv();
+    } else if(ptrs.length === 2 && _pinch0){
+      const dx = ptrs[1].x - ptrs[0].x, dy = ptrs[1].y - ptrs[0].y;
+      const dist = Math.hypot(dx, dy);
+      const angle = Math.atan2(dy, dx);
+      lOv_.scale = Math.max(5, Math.min(300, _pinch0.scale * dist / _pinch0.dist));
+      lOv_.rot   = _pinch0.rot + (angle - _pinch0.angle);
+      drawLOv();
+    }
+  };
+
+  const _end = e=>{
+    e.preventDefault();
+    delete _lOvPtrs[e.pointerId];
+    const ptrs = Object.values(_lOvPtrs);
+    if(ptrs.length === 1){
+      _drag0 = { px: ptrs[0].x, py: ptrs[0].y, cx: lOv_.cx, cy: lOv_.cy };
+      _pinch0 = null;
+    } else if(ptrs.length === 0){
+      _drag0 = null; _pinch0 = null;
+    }
+  };
+  lov_.onpointerup = _end;
+  lov_.onpointercancel = _end;
+}
+
+function applyLOutline(){
+  if(!lOv_) return;
+  const { name, pathData, cx, cy, scale, rot } = lOv_;
+  lx_.save();
+  lx_.translate(cx, cy);
+  lx_.rotate(rot);
+  lx_.scale(scale, scale);
+  lx_.translate(-12, -12);
+  const p2d = new Path2D(pathData);
+  lx_.strokeStyle = '#B0B0B0';
+  lx_.lineWidth = 1.5 / scale;
+  lx_.setLineDash([3/scale, 4/scale]);
+  lx_.lineCap = 'round';
+  lx_.stroke(p2d);
+  lx_.setLineDash([]);
+  lx_.restore();
+  lBase_ = lc_.toDataURL();
+  _dismissLOv();
+  addFavorite(name);
+  renderLOutlines();
+  toast('윤곽선 배치 완료! 이제 따라 그려보세요 ✨');
+}
+
+function cancelLOutline(){
+  _dismissLOv();
+  toast('윤곽선을 취소했어요');
+}
+
+function _dismissLOv(){
+  lOv_ = null;
+  if(lov_){ lovx_.clearRect(0, 0, lov_.width, lov_.height); lov_.style.display = 'none'; }
+  document.getElementById('lOvBtns').style.display = 'none';
+  lc_.style.pointerEvents = '';
+}
+
+function undoL(){
+  if(!lStk_.length){ toast('더 이상 되돌릴 게 없어요'); return; }
+  lStk_.pop();
+  const box = document.getElementById('landscapeCanvasArea').getBoundingClientRect();
+  lx_.clearRect(0, 0, box.width, box.height);
+  const img = new Image();
+  img.onload = ()=>{
+    lx_.drawImage(img, 0, 0, box.width, box.height);
+    lStk_.forEach(s=>{
+      if(s.points.length < 2) return;
+      lx_.beginPath();
+      lx_.strokeStyle = s.tool==='eraser' ? '#FFFFFF' : s.color;
+      lx_.lineWidth = s.tool==='eraser' ? 28 : s.tool==='thick' ? 10 : 5;
+      lx_.lineCap = lx_.lineJoin = 'round';
+      lx_.moveTo(s.points[0].x, s.points[0].y);
+      for(let i=1;i<s.points.length;i++){
+        const prev=s.points[i-1], curr=s.points[i];
+        const mid={x:(prev.x+curr.x)/2,y:(prev.y+curr.y)/2};
+        lx_.quadraticCurveTo(prev.x,prev.y,mid.x,mid.y);
+      }
+      lx_.stroke();
+    });
+  };
+  img.src = lBase_ || 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==';
+  toast('되돌렸어요 ↩️');
+}
+
+function clearL(){
+  if(!lStk_.length && !lBase_){ toast('이미 깨끗한 캔버스예요 ✨'); return; }
+  if(!confirm('정말 전체를 지우시겠어요?')) return;
+  lStk_ = []; lBase_ = null;
+  const box = document.getElementById('landscapeCanvasArea').getBoundingClientRect();
+  lx_.clearRect(0, 0, box.width, box.height);
+  toast('캔버스를 깨끗이 지웠어요 🗑️');
+}
+
+function exitLandscapeMode(){
+  // 오버레이 윤곽선 배치 중이면 취소
+  if(lOv_) _dismissLOv();
+  // 가로 캔버스 내용을 미리 저장
+  const imgData = lc_.toDataURL();
+
+  document.getElementById('landscapeOverlay').classList.remove('active');
+  // 폰 프레임을 다시 세로로 전환
+  document.querySelector('.phone').classList.remove('landscape-mode');
+
+  // CSS transition(0.4s) 완료 후 메인 캔버스로 복사
+  setTimeout(()=>{
+    resizeCanvas();
+    const img = new Image();
+    img.onload = ()=>{
+      const w = canvas.width/devicePixelRatio, h = canvas.height/devicePixelRatio;
+      ctx.clearRect(0, 0, w, h);
+      ctx.drawImage(img, 0, 0, w, h);
+      strokes = []; currentOutlineSVG = null;
+      hint.style.display = 'none';
+    };
+    img.src = imgData;
+  }, 450);
+
+  toast('크게 그리기 완료! ✨');
+  speak('크게 그리기를 마쳤어요.');
+}
+
 // ── 초기화 ──
 navBtns = document.querySelectorAll("nav button");
 renderFavorites();
 renderOutlines();
+
+// 하루 홈 날짜 표시
+(function(){
+  const days = ['일','월','화','수','목','금','토'];
+  const now = new Date();
+  const m = now.getMonth()+1, d = now.getDate(), w = days[now.getDay()];
+  const el = document.getElementById('haruHomeDate');
+  if(el) el.textContent = `📅 ${m}월 ${d}일 ${w}요일`;
+})();
+refreshHaruPreview();
 
 // PWA 서비스워커
 if("serviceWorker" in navigator){
