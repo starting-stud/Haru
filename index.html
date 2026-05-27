@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
 <meta name="theme-color" content="#5E3F8C"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -116,7 +116,7 @@ main{flex:1;min-height:0;overflow:hidden;padding:0 16px 80px;position:relative}
 
 /* 캔버스 */
 .canvas-wrap{
-  position:relative;height:296px;
+  position:relative;width:100%;aspect-ratio:16/9;
   background:white;border:2px solid var(--border2);border-radius:24px;
   overflow:hidden;touch-action:none;
   box-shadow:inset 0 0 20px rgba(189,156,103,.1);
@@ -132,6 +132,60 @@ canvas{width:100%;height:100%;display:block}
 /* 즐겨찾기 행 */
 .fav-row{margin:12px 2px 6px;display:flex;justify-content:space-between;align-items:center}
 .fav-row .label{font-size:16px;font-weight:800}
+.fav-all-btn{
+  font-size:13px;font-weight:800;color:var(--purple);font-family:inherit;
+  border:1.5px solid var(--purple-soft);background:var(--purple-soft);
+  border-radius:20px;padding:4px 12px;cursor:pointer;
+}
+
+/* ── 바텀시트 ── */
+.sheet-dim{
+  position:absolute;inset:0;z-index:300;
+  background:rgba(0,0,0,.35);
+  opacity:0;pointer-events:none;
+  transition:opacity .3s ease;
+  border-radius:inherit;
+}
+.sheet-dim.open{opacity:1;pointer-events:auto}
+.outline-sheet{
+  position:absolute;left:0;right:0;bottom:0;z-index:301;
+  background:var(--bg);border-radius:24px 24px 0 0;
+  box-shadow:0 -6px 32px rgba(60,40,10,.18);
+  display:flex;flex-direction:column;
+  max-height:78%;
+  transform:translateY(100%);
+  transition:transform .35s cubic-bezier(.4,0,.2,1);
+}
+.outline-sheet.open{transform:translateY(0)}
+.sheet-handle{
+  width:40px;height:4px;border-radius:2px;
+  background:var(--border);margin:10px auto 0;flex-shrink:0;
+}
+.sheet-header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:12px 18px 8px;flex-shrink:0;
+}
+.sheet-title{font-size:18px;font-weight:900;color:var(--text)}
+.sheet-close{
+  border:0;background:transparent;font-size:20px;
+  color:var(--muted);cursor:pointer;padding:4px;
+}
+.sheet-search{
+  margin:0 14px 10px;padding:10px 14px;
+  border:1.5px solid var(--border);border-radius:14px;
+  font-size:15px;font-family:inherit;font-weight:700;
+  background:white;outline:none;flex-shrink:0;
+}
+.sheet-cats{
+  display:flex;gap:7px;padding:0 14px 10px;
+  overflow-x:auto;flex-shrink:0;
+}
+.sheet-cats::-webkit-scrollbar{display:none}
+.sheet-grid{
+  display:grid;grid-template-columns:repeat(3,1fr);
+  gap:10px;padding:0 14px 24px;
+  overflow-y:auto;
+}
 .chips{
   display:flex;
   gap:10px;
@@ -225,16 +279,42 @@ canvas{width:100%;height:100%;display:block}
 .tool.eraser-btn.active{background:var(--orange);border-color:var(--orange)}
 
 /* 색상 팔레트 */
-.color-palette{
-  display:flex;gap:7px;overflow-x:auto;padding:8px 2px;
+/* 접이식 색상 선택기 */
+.color-picker-wrap{margin:6px 0}
+.color-picker-toggle{
+  width:100%;display:flex;align-items:center;gap:10px;
+  padding:9px 14px;border:1.5px solid var(--border);border-radius:14px;
+  background:white;font-family:inherit;font-weight:800;
+  cursor:pointer;transition:all .15s;
 }
-.color-palette::-webkit-scrollbar{display:none}
+.color-picker-toggle:active{transform:scale(.98)}
+.color-picker-toggle.open{border-radius:14px 14px 0 0;border-bottom-color:transparent}
+.color-current-dot{
+  width:26px;height:26px;border-radius:50%;flex-shrink:0;
+  border:2.5px solid white;box-shadow:0 2px 8px rgba(0,0,0,.18);
+}
+.color-picker-label{flex:1;text-align:left;font-size:14px;color:var(--ink)}
+.color-picker-chevron{
+  font-size:11px;color:var(--muted);
+  transition:transform .22s cubic-bezier(.4,0,.2,1);
+}
+.color-picker-chevron.open{transform:rotate(180deg)}
+.color-picker-panel{
+  display:grid;grid-template-columns:repeat(5,1fr);gap:8px;
+  padding:12px 14px;
+  border:1.5px solid var(--border);border-top:0;border-radius:0 0 14px 14px;
+  background:white;
+  max-height:0;overflow:hidden;
+  transition:max-height .25s cubic-bezier(.4,0,.2,1),padding .25s;
+  padding-top:0;padding-bottom:0;
+}
+.color-picker-panel.open{max-height:120px;padding:12px 14px}
 .color-dot{
-  flex-shrink:0;width:38px;height:38px;border-radius:50%;
+  width:100%;aspect-ratio:1;border-radius:50%;
   border:3px solid white;box-shadow:0 2px 6px rgba(0,0,0,.15);
   transition:transform .15s;
 }
-.color-dot:active,.color-dot.active{transform:scale(1.2);box-shadow:0 0 0 3px var(--purple)}
+.color-dot:active,.color-dot.active{transform:scale(1.18);box-shadow:0 0 0 3px var(--purple)}
 
 /* Undo/Redo */
 .edit-actions{display:flex;gap:6px;margin-top:8px}
@@ -316,7 +396,7 @@ canvas{width:100%;height:100%;display:block}
   border-radius:16px;padding:4px 10px;font-size:13px;font-weight:800;
 }
 .diary-canvas-preview{
-  height:180px;border-radius:18px;border:2px solid var(--border);
+  width:100%;aspect-ratio:16/9;border-radius:18px;border:2px solid var(--border);
   background:white;display:grid;place-items:center;
   color:var(--muted);font-weight:800;font-size:16px;margin-bottom:14px;
   overflow:hidden;
@@ -385,6 +465,84 @@ textarea{
 /* ══════════════════════
    커뮤니티 화면
 ══════════════════════ */
+/* 이웃 탭 탭바 */
+/* 게시물 상세 모달 */
+.post-modal{
+  position:absolute;inset:0;background:rgba(63,51,40,.55);
+  display:flex;align-items:flex-end;justify-content:center;
+  opacity:0;pointer-events:none;transition:opacity .22s;z-index:80;padding:12px;
+}
+.post-modal.show{opacity:1;pointer-events:auto}
+.post-modal-sheet{
+  width:100%;max-height:92%;background:var(--paper);
+  border-radius:28px 28px 22px 22px;padding:16px 18px 24px;
+  overflow-y:auto;box-shadow:var(--shadow2);display:flex;flex-direction:column;gap:12px;
+}
+.post-modal-close{
+  float:right;width:38px;height:38px;border:0;border-radius:50%;
+  background:var(--purple-soft);color:var(--purple);font-size:17px;font-weight:800;
+  margin:-2px -2px 6px 8px;cursor:pointer;font-family:inherit;flex-shrink:0;
+}
+.post-modal-img{
+  width:100%;aspect-ratio:16/9;object-fit:contain;border-radius:16px;
+  border:2px solid var(--border);background:white;display:block;
+}
+.post-modal-img-placeholder{
+  width:100%;aspect-ratio:16/9;border-radius:16px;border:2px solid var(--border);
+  background:#FFF8E7;display:grid;place-items:center;font-size:60px;
+}
+.post-modal-author{display:flex;align-items:center;gap:8px;font-weight:900;font-size:15px}
+.post-modal-text{font-size:16px;line-height:1.75;color:var(--ink);white-space:pre-wrap}
+/* 반응 버튼 */
+.reaction-row{display:flex;gap:8px;flex-wrap:wrap}
+.reaction-btn{
+  display:flex;align-items:center;gap:5px;
+  border:1.5px solid var(--border);border-radius:20px;
+  padding:7px 14px;font-size:14px;font-weight:800;font-family:inherit;
+  background:white;cursor:pointer;transition:all .15s;color:var(--ink);
+}
+.reaction-btn.active{background:var(--purple-soft);border-color:var(--purple);color:var(--purple)}
+.reaction-btn:active{transform:scale(.95)}
+.reaction-count{font-size:13px;font-weight:700;min-width:12px}
+/* 댓글 */
+.comments-section{display:flex;flex-direction:column;gap:8px}
+.comments-title{font-size:14px;font-weight:900;color:var(--muted);padding-bottom:4px;border-bottom:1.5px solid var(--border)}
+.comment-item{display:flex;gap:8px;align-items:flex-start}
+.comment-avatar{font-size:20px;flex-shrink:0;line-height:1}
+.comment-body{flex:1}
+.comment-author{font-size:13px;font-weight:900;color:var(--purple)}
+.comment-text{font-size:14px;color:var(--ink);line-height:1.6;margin-top:1px}
+.comment-time{font-size:11px;color:var(--muted);margin-top:2px}
+.comment-input-row{
+  display:flex;gap:8px;align-items:center;
+  border:1.5px solid var(--border);border-radius:20px;padding:6px 6px 6px 14px;
+  background:white;
+}
+.comment-input{
+  flex:1;border:0;outline:none;font-size:14px;font-family:inherit;
+  background:transparent;color:var(--ink);
+}
+.comment-send-btn{
+  width:36px;height:36px;border:0;border-radius:50%;
+  background:var(--purple);color:white;font-size:17px;font-weight:900;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.no-comments{font-size:13px;color:var(--muted);text-align:center;padding:8px 0}
+
+.community-tabs{
+  display:flex;margin-bottom:14px;
+  border-bottom:2px solid var(--border);
+  flex-shrink:0;
+}
+.community-tab{
+  flex:1;height:46px;border:0;background:transparent;
+  font-size:16px;font-weight:900;font-family:inherit;
+  color:var(--muted);cursor:pointer;
+  border-bottom:3px solid transparent;margin-bottom:-2px;
+  transition:color .15s,border-color .15s;
+}
+.community-tab.active{color:var(--purple);border-bottom-color:var(--purple)}
+
 /* 이웃 일기 블로그형 카드 */
 .nblog-card{
   padding:0;overflow:hidden;margin-bottom:12px;
@@ -459,6 +617,44 @@ button.feed-card.my-diary-card:active{transform:scale(.98)}
   border-radius:14px;padding:6px 12px;font-size:13px;font-weight:800;
 }
 .diary-modal-actions{margin-top:18px}
+.diary-modal-action-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+.diary-edit-btn{
+  height:52px;border:0;border-radius:26px;
+  background:var(--purple-soft);color:var(--purple);
+  font-size:15px;font-weight:900;font-family:inherit;cursor:pointer;transition:transform .15s;
+}
+.diary-edit-btn:active{transform:scale(.97)}
+.diary-share-btn{
+  height:52px;border:1.5px solid #C8E6C9;border-radius:26px;
+  background:#E6F4EA;color:var(--green);
+  font-size:15px;font-weight:900;font-family:inherit;cursor:pointer;transition:transform .15s;
+}
+.diary-share-btn:active{transform:scale(.97)}
+.diary-edit-textarea{
+  width:100%;min-height:120px;resize:none;display:none;
+  border:1.5px solid var(--purple-soft);border-radius:16px;
+  padding:12px;font-family:inherit;font-size:16px;line-height:1.75;
+  color:var(--ink);outline:none;background:white;margin-bottom:8px;
+}
+.diary-edit-textarea:focus{border-color:var(--purple)}
+.diary-edit-save-row{
+  display:none;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;
+}
+.diary-edit-save-btn{
+  height:48px;border:0;border-radius:24px;
+  background:var(--purple);color:white;font-size:15px;font-weight:900;font-family:inherit;cursor:pointer;
+}
+.diary-edit-cancel-btn{
+  height:48px;border:1.5px solid var(--border);border-radius:24px;
+  background:white;color:var(--muted);font-size:15px;font-weight:900;font-family:inherit;cursor:pointer;
+}
+.diary-redraw-btn{
+  width:100%;min-height:48px;border:0;border-radius:24px;margin-bottom:10px;
+  background:linear-gradient(135deg,var(--purple),var(--purple2));
+  color:white;font-size:15px;font-weight:900;font-family:inherit;cursor:pointer;
+  box-shadow:var(--shadow2);transition:transform .15s;
+}
+.diary-redraw-btn:active{transform:scale(.97)}
 .diary-delete-btn{
   width:100%;min-height:52px;border:0;border-radius:26px;
   background:var(--red);color:white;font-size:17px;font-weight:800;
@@ -489,6 +685,111 @@ button.feed-card.my-diary-card:active{transform:scale(.98)}
 }
 
 /* ══════════════════════
+   더보기 탭
+══════════════════════ */
+.more-item-card{
+  width:100%;display:flex;align-items:center;gap:14px;
+  background:white;border:1.5px solid var(--border);
+  border-radius:20px;padding:14px 16px;margin-bottom:10px;
+  cursor:pointer;transition:transform .15s;
+  box-shadow:var(--shadow);font-family:inherit;text-align:left;
+}
+.more-item-card:active{transform:scale(.97)}
+.more-item-icon{
+  width:52px;height:52px;border-radius:16px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:28px;flex-shrink:0;
+}
+.more-item-icon.purple{background:linear-gradient(135deg,#F0ECFF,#E0EEFF);border:1.5px solid #D0C8F0}
+.more-item-icon.orange{background:linear-gradient(135deg,#FFF3E0,#FFE4C0);border:1.5px solid #F5D0A0}
+.more-item-info{flex:1}
+.more-item-name{font-size:16px;font-weight:900;color:var(--ink)}
+.more-item-desc{font-size:12px;font-weight:700;color:var(--muted);margin-top:2px}
+.more-arrow{font-size:22px;color:var(--muted);flex-shrink:0}
+.more-month-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.more-month-card{
+  background:white;border:1.5px solid var(--border);
+  border-radius:18px;padding:14px 14px 12px;
+  display:flex;flex-direction:column;align-items:flex-start;gap:3px;
+  cursor:pointer;transition:transform .15s;
+  box-shadow:var(--shadow);font-family:inherit;text-align:left;
+}
+.more-month-card:active{transform:scale(.97)}
+.more-month-num{font-family:'Gaegu',cursive;font-size:24px;font-weight:700;color:var(--purple)}
+.more-month-name{font-size:14px;font-weight:900;color:var(--ink)}
+.more-month-sub{font-size:11px;font-weight:700;color:var(--muted)}
+
+/* ══════════════════════
+   나 탭 – 프로필
+══════════════════════ */
+.profile-card{
+  padding:18px 16px;margin-bottom:14px;
+  display:flex;align-items:center;gap:16px;
+}
+.profile-photo{
+  width:80px;height:80px;border-radius:50%;
+  background:linear-gradient(135deg,#FFE5B4,#FFD4A3);
+  border:3px solid var(--orange);
+  display:flex;align-items:center;justify-content:center;
+  font-size:38px;position:relative;cursor:pointer;
+  overflow:hidden;flex-shrink:0;
+  box-shadow:0 4px 14px rgba(232,132,90,.28);
+  transition:transform .15s;
+}
+.profile-photo:active{transform:scale(.95)}
+.profile-photo img{
+  position:absolute;inset:0;width:100%;height:100%;
+  object-fit:cover;border-radius:50%;
+}
+.profile-photo-edit-badge{
+  position:absolute;bottom:2px;right:2px;z-index:2;
+  width:24px;height:24px;border-radius:50%;
+  background:var(--purple);color:white;
+  font-size:12px;display:flex;align-items:center;justify-content:center;
+  box-shadow:0 2px 6px rgba(94,63,140,.4);
+}
+.profile-info{flex:1;min-width:0}
+.profile-name-row{
+  display:flex;align-items:center;gap:7px;margin-bottom:10px;
+}
+.profile-name{
+  font-size:20px;font-weight:900;color:var(--ink);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.profile-edit-btn{
+  border:0;background:var(--purple-soft);border-radius:50%;
+  width:30px;height:30px;font-size:14px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;transition:transform .15s;
+}
+.profile-edit-btn:active{transform:scale(.9)}
+.profile-stats{display:flex;align-items:center;gap:14px}
+.profile-stat{text-align:center}
+.profile-stat-num{
+  display:block;font-size:22px;font-weight:900;
+  color:var(--purple);font-family:'Gaegu',cursive;line-height:1.1;
+}
+.profile-stat-label{font-size:12px;color:var(--muted);font-weight:700}
+.profile-stat-divider{
+  width:1.5px;height:30px;background:var(--border);border-radius:2px;
+}
+.profile-name-edit-row{
+  display:flex;gap:8px;margin:-4px 0 14px;
+}
+.profile-name-input{
+  flex:1;height:46px;border:1.5px solid var(--purple-soft);border-radius:23px;
+  padding:0 16px;font-size:15px;font-family:inherit;
+  color:var(--ink);background:white;outline:none;
+}
+.profile-name-input:focus{border-color:var(--purple)}
+.profile-name-save-btn{
+  height:46px;padding:0 20px;border:0;border-radius:23px;
+  background:var(--purple);color:white;
+  font-size:14px;font-weight:900;font-family:inherit;cursor:pointer;
+  flex-shrink:0;
+}
+
+/* ══════════════════════
    연결 화면
 ══════════════════════ */
 .setting-row{
@@ -516,7 +817,7 @@ button.feed-card.my-diary-card:active{transform:scale(.98)}
 nav{
   position:absolute;left:14px;right:14px;bottom:14px;height:76px;
   background:rgba(255,253,247,.96);border:1.5px solid var(--border);
-  border-radius:32px;display:grid;grid-template-columns:repeat(4,1fr);
+  border-radius:32px;display:grid;grid-template-columns:repeat(3,1fr);
   padding:8px;box-shadow:0 8px 28px rgba(60,40,10,.14);
   backdrop-filter:blur(12px);flex-shrink:0;
 }
@@ -578,64 +879,226 @@ nav button.active{background:var(--purple-soft);color:var(--purple)}
 .expand-btn small{font-size:9px;font-weight:800}
 
 /* ── 하루 홈 화면 ── */
-.haru-home-greeting{
-  padding:16px 18px;display:flex;flex-direction:column;gap:4px;
-  background:linear-gradient(120deg,#FFF8E7,#FDE8C8);
-  border:1.5px solid var(--border);
+
+/* 날짜·날씨 바 */
+.haru-topbar{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:4px 2px;
 }
-.haru-home-date{font-size:14px;font-weight:800;color:var(--muted)}
-.haru-home-msg{font-size:17px;font-weight:900;color:var(--purple)}
+.haru-topbar-date-big{
+  font-family:'Gaegu',cursive;font-size:17px;font-weight:700;
+  color:var(--ink);line-height:1;
+}
+.haru-topbar-date-sub{font-size:11px;color:var(--muted);font-weight:700;margin-top:2px}
+.haru-weather-pill{
+  background:#FFF4EB;border:1.5px solid #F5C9A0;
+  border-radius:16px;padding:4px 10px;
+  font-size:13px;font-weight:800;color:var(--orange);
+}
+
+/* 오늘 그림 섹션 */
+.haru-today-section{margin-bottom:6px}
+.haru-section-label{
+  font-size:12px;font-weight:800;color:var(--muted);
+  margin-bottom:3px;padding:0 2px;
+}
+
+/* 오늘 그림 있는 카드 */
+.haru-today-drawn{
+  border-radius:22px;overflow:hidden;
+  border:1.5px solid var(--border);background:white;
+  box-shadow:var(--shadow);cursor:pointer;transition:transform .15s;
+}
+.haru-today-drawn:active{transform:scale(.98)}
+.haru-today-drawn-img{
+  width:100%;aspect-ratio:16/9;background:#FFF8E7;
+  display:grid;place-items:center;overflow:hidden;
+}
+.haru-today-drawn-img img{width:100%;height:100%;object-fit:contain;display:block}
+.haru-today-drawn-text{
+  font-size:14px;color:var(--ink);line-height:1.6;
+  padding:10px 16px;border-top:1.5px solid var(--border);
+  background:#FDFAF4;
+  display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;
+}
+.haru-today-drawn-footer{
+  padding:10px 16px;display:flex;align-items:center;
+  justify-content:space-between;border-top:1.5px solid var(--border);
+}
+.haru-today-drawn-status{font-size:14px;font-weight:800;color:var(--green)}
+.haru-today-drawn-action{
+  font-size:13px;font-weight:800;color:var(--purple);
+  background:var(--purple-light);border:1px solid var(--purple-soft);
+  border-radius:14px;padding:5px 12px;
+}
+
+/* 아직 안 그린 경우 - CTA */
+.haru-nodraw-cta{
+  width:100%;height:100%;border:2px dashed #C8ADEE;border-radius:26px;
+  background:linear-gradient(135deg,#F2EBFF 0%,#EBF4FF 100%);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;
+  cursor:pointer;transition:transform .15s;font-family:inherit;
+}
+.haru-nodraw-cta:active{transform:scale(.98)}
+.haru-nodraw-emoji{
+  font-size:56px;line-height:1;
+  animation:nodraw-bounce 2.2s ease-in-out infinite;
+}
+@keyframes nodraw-bounce{
+  0%,100%{transform:translateY(0)}
+  50%{transform:translateY(-10px)}
+}
+.haru-nodraw-title{font-size:21px;font-weight:900;color:var(--purple)}
+.haru-nodraw-sub{
+  font-size:14px;font-weight:700;color:var(--muted);
+  text-align:center;line-height:1.65;
+}
+.haru-nodraw-start{
+  margin-top:6px;background:var(--purple);color:white;
+  border-radius:22px;padding:11px 26px;
+  font-size:16px;font-weight:900;font-family:inherit;border:0;
+  box-shadow:0 6px 16px rgba(94,63,140,.28);transition:transform .15s;
+}
+.haru-nodraw-start:active{transform:scale(.97)}
+
+/* 하루 홈 화면: 상단 fold만 화면 높이를 채우고 아래 버튼들은 스크롤 영역 */
+#haru.active{
+  height:100%;
+}
+.haru-above-fold{
+  height:100%;
+  display:flex;flex-direction:column;
+}
+/* 오늘 그림 섹션이 남은 공간 채우고, AI카드는 내용 높이만 */
+.haru-above-fold .haru-today-section{
+  flex:1;display:flex;flex-direction:column;min-height:0;
+}
+.haru-above-fold #haruTodayPreview{
+  flex:1;min-height:0;
+}
+.haru-above-fold .haru-ai-card{
+  flex:0 0 auto;min-height:220px;overflow-y:auto;
+  display:flex;flex-direction:column;
+}
+.haru-above-fold .haru-ai-input-row{
+  margin-top:auto;
+}
+
+/* AI 메시지 카드 */
+.haru-ai-card{
+  background:linear-gradient(135deg,#F9F5FF 0%,#FFF9F5 100%);
+  border:1.5px solid #DDD0F5;border-radius:24px;
+  padding:12px 16px 12px;margin-bottom:0;
+}
+.haru-ai-card-header{
+  display:flex;align-items:center;gap:9px;margin-bottom:8px;
+}
+.haru-ai-card-avatar{
+  width:34px;height:34px;border-radius:50%;
+  background:linear-gradient(135deg,#FFE5B4,#FFD4A3);
+  border:2px solid var(--orange);
+  display:flex;align-items:center;justify-content:center;font-size:17px;
+}
+.haru-ai-card-name{font-size:14px;font-weight:900;color:var(--purple);flex:1}
+.haru-ai-card-badge{
+  background:var(--purple);color:white;
+  border-radius:10px;padding:3px 9px;font-size:11px;font-weight:800;
+}
+.haru-ai-message-text{
+  font-size:19px;font-weight:800;color:var(--ink);
+  line-height:1.55;text-align:center;
+  padding:4px 8px 10px;min-height:56px;
+  display:flex;align-items:center;justify-content:center;
+  transition:opacity .22s ease,transform .22s ease;
+}
+/* 답장 입력 행 */
+.haru-ai-input-row{
+  display:flex;gap:8px;margin-bottom:7px;
+}
+.haru-ai-input{
+  flex:1;height:44px;
+  border:1.5px solid #DDD0F5;border-radius:22px;
+  padding:0 16px;font-size:15px;font-family:inherit;
+  color:var(--ink);background:white;outline:none;
+}
+.haru-ai-input:focus{border-color:var(--purple)}
+.haru-ai-send-btn{
+  width:44px;height:44px;border-radius:50%;border:0;
+  background:var(--purple);color:white;font-size:20px;
+  flex-shrink:0;cursor:pointer;transition:transform .15s;
+  display:flex;align-items:center;justify-content:center;
+}
+.haru-ai-send-btn:active{transform:scale(.92)}
+/* 큰 원형 마이크 버튼 */
+.haru-mic-big{
+  width:72px;height:72px;border-radius:50%;border:0;
+  background:linear-gradient(135deg,#D85050,#C03030);
+  color:white;font-size:30px;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 6px 20px rgba(216,80,80,.38);
+  cursor:pointer;transition:transform .15s,box-shadow .15s;
+  flex-shrink:0;
+}
+.haru-mic-big:active{transform:scale(.9);box-shadow:0 3px 10px rgba(216,80,80,.28)}
+.haru-mic-big.recording{
+  background:linear-gradient(135deg,#C03030,#A02020);
+  animation:mic-pulse 1.2s infinite;
+}
+.haru-mic-row{
+  display:flex;justify-content:center;
+  padding:8px 0 12px;
+}
+
+/* 스크롤 아래 구분선 */
+.haru-extra-sep{
+  font-size:13px;font-weight:800;color:var(--muted);
+  display:flex;align-items:center;gap:8px;margin:4px 2px 12px;
+}
+.haru-extra-sep::before,.haru-extra-sep::after{
+  content:'';flex:1;height:1.5px;background:var(--border);border-radius:2px;
+}
+
+/* 그리기 버튼 */
 .haru-draw-btn{
-  width:100%;padding:22px 20px;border:0;border-radius:20px;
-  background:linear-gradient(135deg,var(--purple) 0%,#9B6CD8 100%);
-  color:white;display:flex;flex-direction:column;align-items:center;gap:6px;
-  box-shadow:0 8px 24px rgba(94,63,140,.30);cursor:pointer;
-  transition:transform .15s,box-shadow .15s;
+  width:100%;padding:0;border:0;border-radius:22px;
+  background:linear-gradient(135deg,#6748A8 0%,#9A68D8 60%,#B888E4 100%);
+  color:white;display:flex;align-items:center;
+  box-shadow:0 8px 22px rgba(94,63,140,.26);
+  cursor:pointer;transition:transform .15s,box-shadow .15s;
+  overflow:hidden;margin-bottom:12px;min-height:80px;font-family:inherit;
 }
-.haru-draw-btn:active{transform:scale(.97);box-shadow:0 4px 12px rgba(94,63,140,.25)}
-.haru-draw-icon{font-size:44px;line-height:1}
-.haru-draw-label{font-size:24px;font-weight:900;font-family:inherit;letter-spacing:-0.5px}
-.haru-draw-sub{font-size:13px;opacity:.85;font-weight:700;font-family:inherit}
+.haru-draw-btn:active{transform:scale(.97);box-shadow:0 4px 12px rgba(94,63,140,.2)}
+.haru-draw-icon-box{
+  width:80px;min-height:80px;
+  background:rgba(255,255,255,.12);
+  border-right:1.5px solid rgba(255,255,255,.14);
+  display:flex;align-items:center;justify-content:center;
+  font-size:36px;flex-shrink:0;
+}
+.haru-draw-text{flex:1;padding:0 16px;text-align:left}
+.haru-draw-label{font-size:17px;font-weight:900;font-family:inherit}
+.haru-draw-sub{font-size:12px;opacity:.82;font-weight:700;font-family:inherit;margin-top:3px}
+.haru-draw-chevron{font-size:28px;padding-right:16px;opacity:.72;flex-shrink:0}
+
+/* 게임 버튼 */
 .haru-game-btn{
-  width:100%;padding:14px 16px;border:0;border-radius:18px;
-  background:linear-gradient(120deg,#FFF3E0,#FFE8F5);
-  border:1.5px solid #F5C8A0;
-  display:flex;align-items:center;gap:12px;cursor:pointer;
-  transition:transform .15s,box-shadow .15s;
-  box-shadow:0 2px 10px rgba(200,120,60,.10);
+  width:100%;padding:14px 16px;
+  border:1.5px solid var(--border);border-radius:20px;
+  background:white;display:flex;align-items:center;gap:14px;
+  cursor:pointer;transition:transform .15s;box-shadow:var(--shadow);font-family:inherit;
 }
 .haru-game-btn:active{transform:scale(.97)}
-.haru-game-icon{font-size:32px;flex-shrink:0}
+.haru-game-icon-box{
+  width:52px;height:52px;border-radius:16px;
+  background:linear-gradient(135deg,#FFF3E0,#FFE4C0);
+  border:1.5px solid #F5D0A0;
+  display:flex;align-items:center;justify-content:center;
+  font-size:28px;flex-shrink:0;
+}
 .haru-game-texts{display:flex;flex-direction:column;align-items:flex-start;gap:2px;flex:1}
-.haru-game-label{font-size:16px;font-weight:900;color:var(--text);font-family:inherit}
+.haru-game-label{font-size:16px;font-weight:900;color:var(--ink);font-family:inherit}
 .haru-game-sub{font-size:12px;font-weight:700;color:var(--muted);font-family:inherit}
-.haru-game-arrow{font-size:24px;color:#D49060;font-weight:900;flex-shrink:0}
-
-.haru-today-wrap{display:flex;flex-direction:column;gap:0}
-.haru-today-label{
-  font-size:13px;font-weight:800;color:var(--muted);
-  padding:4px 2px 8px;
-}
-.haru-today-card{
-  border:1.5px solid var(--border);border-radius:20px;
-  overflow:hidden;background:white;cursor:pointer;
-  transition:transform .15s;
-}
-.haru-today-card:active{transform:scale(.98)}
-.haru-today-img{
-  width:100%;aspect-ratio:4/3;background:#FFF8E7;
-  display:grid;place-items:center;
-}
-.haru-today-img img{width:100%;height:100%;object-fit:cover;display:block}
-.haru-today-footer{
-  padding:10px 14px;display:flex;align-items:center;justify-content:space-between;
-  border-top:1.5px solid var(--border);
-}
-.haru-today-status{font-size:13px;font-weight:800;color:var(--purple)}
-.haru-today-action{font-size:13px;font-weight:800;color:var(--muted)}
-.haru-today-blank{background:#FAF5EC;border-bottom:1.5px solid var(--border)}
-.haru-blank-inner{display:flex;flex-direction:column;align-items:center;gap:8px}
-.haru-blank-msg{font-size:13px;font-weight:700;color:var(--muted);text-align:center;line-height:1.6}
+.haru-game-arrow{font-size:22px;color:var(--muted);flex-shrink:0}
 
 /* ── 폰 가로 전환 ── */
 .phone{transition:width .4s cubic-bezier(.4,0,.2,1),height .4s cubic-bezier(.4,0,.2,1),border-radius .4s ease}
@@ -679,7 +1142,9 @@ nav button.active{background:var(--purple-soft);color:var(--purple)}
 .l-x-btn{background:#FFE8E6;color:var(--red);font-size:20px}
 /* 캔버스 영역 (공간 느낌 주는 여백) */
 #landscapeCanvasArea{
-  flex:1;position:relative;overflow:hidden;background:white;touch-action:none;
+  flex:1;aspect-ratio:16/9;
+  max-width:calc(100% - 20px);align-self:center;
+  position:relative;overflow:hidden;background:white;touch-action:none;
   margin:0 10px 10px;border-radius:14px;
   border:2px solid var(--border2);
   box-shadow:0 4px 16px rgba(63,51,40,.10);
@@ -759,28 +1224,88 @@ nav button.active{background:var(--purple-soft);color:var(--purple)}
 
     <!-- ① 하루 홈 화면 -->
     <section id="haru" class="screen active">
-      <div class="haru-home-greeting card">
-        <div class="haru-home-date" id="haruHomeDate"></div>
-        <div class="haru-home-msg">오늘도 소중한 하루예요 🌷</div>
-      </div>
-      <!-- 오늘 그린 일기 미리보기 -->
-      <div id="haruTodayPreview" class="haru-today-wrap"></div>
 
+      <!-- 화면 안에 들어오는 영역 (이 div가 정확히 화면 높이를 채움) -->
+      <div class="haru-above-fold">
+
+        <!-- 날짜 & 날씨 -->
+        <div class="haru-topbar">
+          <div class="haru-topbar-date-big" id="haruDateBig"></div>
+          <div class="haru-weather-pill">☀️ 맑음</div>
+        </div>
+
+        <!-- 오늘 그림 (JS로 채워짐: 그린 경우 / 안 그린 경우) -->
+        <div class="haru-today-section">
+          <div class="haru-section-label">📅 오늘의 그림</div>
+          <div id="haruTodayPreview"></div>
+        </div>
+
+        <!-- AI 메시지 카드 -->
+        <div class="haru-ai-card">
+          <div class="haru-ai-card-header">
+            <div class="haru-ai-card-avatar">🌼</div>
+            <span class="haru-ai-card-name">하루의 오늘 질문</span>
+            <span class="haru-ai-card-badge">AI</span>
+          </div>
+          <div class="haru-ai-message-text" id="haruAiMessage">오늘 하루 어떠셨어요? 🌷</div>
+          <!-- 큰 마이크 버튼 -->
+          <div class="haru-mic-row">
+            <button class="haru-mic-big" id="haruVoiceBtn" onclick="startHaruVoice()">🎤</button>
+          </div>
+          <!-- 텍스트 답장 -->
+          <div class="haru-ai-input-row">
+            <input class="haru-ai-input" id="haruAiInput"
+              placeholder="하루에게 전해보세요..."
+              onkeydown="if(event.key==='Enter')sendHaruMsg()"/>
+            <button class="haru-ai-send-btn" onclick="sendHaruMsg()">↑</button>
+          </div>
+        </div>
+
+        <!-- ──── 더보기 구분선 (화면 맨 아래에 살짝 보임) ──── -->
+        <div class="haru-extra-sep">더 보기</div>
+
+      </div><!-- /haru-above-fold -->
+
+      <!-- 스크롤해야 보이는 영역 -->
       <button class="haru-draw-btn" onclick="enterDrawMode()">
-        <span class="haru-draw-icon">🎨</span>
-        <span class="haru-draw-label">그림 그리기</span>
-        <span class="haru-draw-sub">오늘의 그림일기를 시작해요</span>
+        <div class="haru-draw-icon-box">🎨</div>
+        <div class="haru-draw-text">
+          <div class="haru-draw-label">그림 추가로 그리기</div>
+          <div class="haru-draw-sub">오늘 그림을 한 장 더 그려요</div>
+        </div>
+        <div class="haru-draw-chevron">›</div>
       </button>
 
       <!-- 미니게임 -->
-      <button class="haru-game-btn" onclick="enterPuzzleMode()">
-        <span class="haru-game-icon">🧩</span>
-        <div class="haru-game-texts">
-          <span class="haru-game-label">내 일기 퍼즐</span>
-          <span class="haru-game-sub">지난 그림으로 퍼즐을 맞춰봐요</span>
+      <div class="section-title">🎮 미니게임</div>
+
+      <button class="more-item-card" onclick="enterPuzzleMode()">
+        <div class="more-item-icon purple">🧩</div>
+        <div class="more-item-info">
+          <div class="more-item-name">내 일기 퍼즐</div>
+          <div class="more-item-desc">지난 그림으로 퍼즐을 맞춰봐요</div>
         </div>
-        <span class="haru-game-arrow">›</span>
+        <span class="more-arrow">›</span>
       </button>
+
+      <button class="more-item-card" onclick="toast('색칠하기 게임을 준비 중이에요 🎨')">
+        <div class="more-item-icon orange">🎨</div>
+        <div class="more-item-info">
+          <div class="more-item-name">색칠하기</div>
+          <div class="more-item-desc">윤곽선을 따라 색칠해봐요</div>
+        </div>
+        <span class="more-arrow">›</span>
+      </button>
+
+      <button class="more-item-card" onclick="toast('그림 맞추기 게임을 준비 중이에요 🖼️')">
+        <div class="more-item-icon purple" style="background:linear-gradient(135deg,#FFF0F5,#FFE0EE);border-color:#F5C8D8">🖼️</div>
+        <div class="more-item-info">
+          <div class="more-item-name">그림 맞추기</div>
+          <div class="more-item-desc">내 그림이 무엇인지 맞춰봐요</div>
+        </div>
+        <span class="more-arrow">›</span>
+      </button>
+
     </section>
 
     <!-- ② 그리기 화면 (탭 없이 흐름으로 접근) -->
@@ -807,17 +1332,25 @@ nav button.active{background:var(--purple-soft);color:var(--purple)}
         </button>
       </div>
 
-      <!-- 색상 팔레트 -->
-      <div class="color-palette" id="colorPalette">
-        <button class="color-dot active" style="background:#3F3328" onclick="setColor('#3F3328',this)" title="검정"></button>
-        <button class="color-dot" style="background:#D86B61" onclick="setColor('#D86B61',this)" title="빨강"></button>
-        <button class="color-dot" style="background:#E8845A" onclick="setColor('#E8845A',this)" title="주황"></button>
-        <button class="color-dot" style="background:#F0C419" onclick="setColor('#F0C419',this)" title="노랑"></button>
-        <button class="color-dot" style="background:#7BAF68" onclick="setColor('#7BAF68',this)" title="초록"></button>
-        <button class="color-dot" style="background:#5E9EC7" onclick="setColor('#5E9EC7',this)" title="하늘"></button>
-        <button class="color-dot" style="background:#5E3F8C" onclick="setColor('#5E3F8C',this)" title="보라"></button>
-        <button class="color-dot" style="background:#C97B9C" onclick="setColor('#C97B9C',this)" title="분홍"></button>
-        <button class="color-dot" style="background:#8B6914" onclick="setColor('#8B6914',this)" title="갈색"></button>
+      <!-- 색상 선택기 (접이식) -->
+      <div class="color-picker-wrap">
+        <button class="color-picker-toggle" id="colorPickerToggle" onclick="toggleColorPicker()">
+          <span class="color-current-dot" id="colorCurrentDot" style="background:#3F3328"></span>
+          <span class="color-picker-label">색상 선택</span>
+          <span class="color-picker-chevron" id="colorPickerChevron">▼</span>
+        </button>
+        <div class="color-picker-panel" id="colorPickerPanel">
+          <button class="color-dot active" style="background:#3F3328" onclick="setColor('#3F3328',this)" title="검정"></button>
+          <button class="color-dot" style="background:#D86B61" onclick="setColor('#D86B61',this)" title="빨강"></button>
+          <button class="color-dot" style="background:#E8845A" onclick="setColor('#E8845A',this)" title="주황"></button>
+          <button class="color-dot" style="background:#F0C419" onclick="setColor('#F0C419',this)" title="노랑"></button>
+          <button class="color-dot" style="background:#7BAF68" onclick="setColor('#7BAF68',this)" title="초록"></button>
+          <button class="color-dot" style="background:#5E9EC7" onclick="setColor('#5E9EC7',this)" title="하늘"></button>
+          <button class="color-dot" style="background:#5E3F8C" onclick="setColor('#5E3F8C',this)" title="보라"></button>
+          <button class="color-dot" style="background:#C97B9C" onclick="setColor('#C97B9C',this)" title="분홍"></button>
+          <button class="color-dot" style="background:#8B6914" onclick="setColor('#8B6914',this)" title="갈색"></button>
+          <button class="color-dot" style="background:#FFFFFF;border-color:#D4C4A0;box-shadow:0 2px 6px rgba(0,0,0,.12)" onclick="setColor('#FFFFFF',this)" title="흰색"></button>
+        </div>
       </div>
 
       <!-- 도구 -->
@@ -842,6 +1375,7 @@ nav button.active{background:var(--purple-soft);color:var(--purple)}
       <!-- 즐겨찾기 윤곽선 -->
       <div class="fav-row">
         <span class="label">⭐ 자주 쓰는 윤곽선</span>
+        <button class="fav-all-btn" onclick="openOutlineSheet()">전체보기</button>
       </div>
       <div id="favoriteChips" class="chips"></div>
 
@@ -867,28 +1401,12 @@ nav button.active{background:var(--purple-soft);color:var(--purple)}
         </div>
       </div>
 
-      <!-- AI 하루 대화 -->
-      <div class="ai-chat">
-        <div class="ai-chat-header">
-          <div class="ai-avatar">🌼</div>
-          <span>하루의 질문</span>
-          <span class="ai-badge">AI 대화</span>
-        </div>
-        <div class="chat-messages" id="chatMessages">
-          <div class="msg ai">오늘 그리신 그림이 참 따뜻해 보여요. 오늘 하루 어떠셨어요? 🌷</div>
-        </div>
-        <div class="chat-input-row">
-          <input class="chat-input" id="chatInput" placeholder="하루에게 답해보세요..." onkeydown="if(event.key==='Enter')sendChat()"/>
-          <button class="chat-send" onclick="sendChat()">↑</button>
-        </div>
-      </div>
-
       <!-- 공개 설정 -->
       <div class="section-title">공개 설정</div>
       <div class="privacy-row" id="privacyRow">
         <button class="chip primary" onclick="setPrivacy('비공개',this)">🔒 비공개</button>
-        <button class="chip" onclick="setPrivacy('가족만',this)">👨‍👩‍👧 가족만</button>
-        <button class="chip" onclick="setPrivacy('공개',this)">🌍 공개</button>
+        <button class="chip" onclick="setPrivacy('이웃만',this)">💛 이웃만</button>
+        <button class="chip" onclick="setPrivacy('전체공개',this)">🌍 전체공개</button>
       </div>
 
       <button class="save-btn" onclick="saveDiary()">
@@ -899,6 +1417,49 @@ nav button.active{background:var(--purple-soft);color:var(--purple)}
 
     <!-- ④ 나 - 내 그림일기 화면 -->
     <section id="mydiaries" class="screen">
+
+      <!-- 프로필 카드 -->
+      <div class="profile-card card" id="profileCard">
+        <div class="profile-photo" id="profilePhotoEl" onclick="changeProfilePhoto()">
+          <img id="profilePhotoImg" src="" alt="프로필 사진" style="display:none">
+          <span id="profilePhotoEmoji">🌸</span>
+          <div class="profile-photo-edit-badge">📷</div>
+        </div>
+        <div class="profile-info">
+          <div class="profile-name-row">
+            <span class="profile-name" id="profileNameEl">내 하루</span>
+            <button class="profile-edit-btn" onclick="startEditName()" aria-label="닉네임 변경">✏️</button>
+          </div>
+          <div class="profile-stats">
+            <div class="profile-stat">
+              <span class="profile-stat-num" id="statTotal">0</span>
+              <span class="profile-stat-label">전체 일기</span>
+            </div>
+            <div class="profile-stat-divider"></div>
+            <div class="profile-stat">
+              <span class="profile-stat-num" id="statMonthly">0</span>
+              <span class="profile-stat-label">이번달</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 닉네임 편집 행 (숨김 기본) -->
+      <div class="profile-name-edit-row" id="profileNameEditRow" hidden>
+        <input class="profile-name-input" id="profileNameInput"
+          placeholder="닉네임을 입력해주세요" maxlength="12"
+          onkeydown="if(event.key==='Enter')saveProfileName();else if(event.key==='Escape')cancelEditName()"/>
+        <button class="profile-name-save-btn" onclick="saveProfileName()">저장</button>
+      </div>
+
+      <!-- 숨김 파일 입력 -->
+      <input type="file" id="profilePhotoInput" accept="image/*"
+        style="display:none" onchange="onProfilePhotoChange(event)">
+
+      <button class="finish-btn" style="margin-bottom:16px" onclick="toast('책 만들기 기능을 준비 중이에요 📖')">
+        📘 이번 달 책 만들기
+      </button>
+
       <div class="section-title">📚 내가 그린 그림일기</div>
       <p id="myDiariesEmpty" class="my-diaries-empty" hidden>
         아직 저장한 그림일기가 없어요.<br/>그림을 그리고 일기 저장하기를 눌러보세요.
@@ -908,109 +1469,103 @@ nav button.active{background:var(--purple-soft);color:var(--purple)}
 
     <!-- ⑤ 이웃 일기 화면 -->
     <section id="community" class="screen">
-      <div class="nblog-card card">
-        <div class="nblog-img"><span>🌸</span></div>
-        <div class="nblog-info">
-          <span class="nblog-author">이웃 박○○님</span>
-          <span class="nblog-time">방금 전</span>
-        </div>
-        <p class="nblog-desc">강아지와 공원 산책하고 그린 그림이에요</p>
-      </div>
-      <div class="nblog-card card">
-        <div class="nblog-img"><span>⭐</span></div>
-        <div class="nblog-info">
-          <span class="nblog-author">친구 김○○님</span>
-          <span class="nblog-time">1시간 전</span>
-        </div>
-        <p class="nblog-desc">손자가 그려준 별을 따라 그렸어요</p>
-      </div>
-      <div class="nblog-card card">
-        <div class="nblog-img"><span>🌺</span></div>
-        <div class="nblog-info">
-          <span class="nblog-author">이웃 최○○님</span>
-          <span class="nblog-time">어제</span>
-        </div>
-        <p class="nblog-desc">베란다 화분에 꽃이 피었어요. 너무 예뻐서!</p>
-      </div>
-    </section>
 
-    <!-- ⑤ 책 만들기 화면 -->
-    <section id="book" class="screen">
-      <div class="book-cover">
-        <div style="font-size:36px;margin-bottom:8px">📖</div>
-        <h2>이번 달 그림일기</h2>
-        <p>소중한 기억들을 책으로 만들어 보세요</p>
-        <div class="book-page-count" id="bookDiaryCount">0장</div>
-        <div style="font-size:13px;opacity:.8" id="bookDiarySub">저장한 그림일기를 불러오는 중...</div>
+      <!-- 탭 헤더 -->
+      <div class="community-tabs">
+        <button class="community-tab active" onclick="switchCommunityTab('neighbors',this)">💛 내 이웃</button>
+        <button class="community-tab" onclick="switchCommunityTab('all',this)">🌍 전체</button>
       </div>
-      <div class="book-thumb-grid" id="bookDiaryGrid"></div>
-      <div class="feed-card card">
-        <div class="thumb" style="font-size:14px;font-weight:900">5월</div>
-        <div>
-          <b>5월 그림일기 모음</b>
-          <p>PDF 만들기 · 인쇄용 · 가족 공유</p>
-        </div>
-      </div>
-      <div class="feed-card card">
-        <div class="thumb" style="font-size:14px;font-weight:900">4월</div>
-        <div>
-          <b>4월 그림일기 모음</b>
-          <p>PDF 만들기 · 인쇄용 · 가족 공유</p>
-        </div>
-      </div>
-      <button class="finish-btn" onclick="toast('책 만들기 기능을 준비 중이에요 📖')">
-        📘 이번 달 책 만들기
-      </button>
-    </section>
 
-    <!-- ⑥ 연결/알림 화면 -->
-    <section id="care" class="screen">
-      <div class="section-title">보호자 연결</div>
-      <div class="feed-card card" style="margin-bottom:12px">
-        <div class="thumb">👧</div>
-        <div>
-          <b>보호자 김○○ (딸)</b>
-          <p>오늘 오후 2:31 알림 전송됨</p>
-          <small style="color:var(--green)">✓ 연결됨</small>
+      <!-- ── 내 이웃 탭 ── -->
+      <div id="communityTabNeighbors">
+        <!-- 내가 공유한 게시물 (JS 렌더링) -->
+        <div id="communityFeed"></div>
+
+        <!-- 등록된 이웃 샘플 -->
+        <div class="nblog-card card" style="cursor:pointer" onclick="openPostDetail('sp-n1',{authorName:'이웃 박○○님',authorEmoji:'🌸',text:'강아지와 공원 산책하고 그린 그림이에요',time:'방금 전'})">
+          <div class="nblog-img"><span>🌸</span></div>
+          <div class="nblog-info">
+            <span class="nblog-author">이웃 박○○님</span>
+            <span class="nblog-time">방금 전</span>
+          </div>
+          <p class="nblog-desc">강아지와 공원 산책하고 그린 그림이에요</p>
+        </div>
+        <div class="nblog-card card" style="cursor:pointer" onclick="openPostDetail('sp-n2',{authorName:'친구 김○○님',authorEmoji:'⭐',text:'손자가 그려준 별을 따라 그렸어요',time:'1시간 전'})">
+          <div class="nblog-img"><span>⭐</span></div>
+          <div class="nblog-info">
+            <span class="nblog-author">친구 김○○님</span>
+            <span class="nblog-time">1시간 전</span>
+          </div>
+          <p class="nblog-desc">손자가 그려준 별을 따라 그렸어요</p>
         </div>
       </div>
-      <div class="section-title">알림 설정</div>
-      <div class="setting-row card">
-        <div><div class="label">📱 앱 접속 알림</div><div class="desc">보호자에게 접속 시 알림</div></div>
-        <span class="badge">켜짐</span>
+
+      <!-- ── 전체 탭 ── -->
+      <div id="communityTabAll" hidden>
+        <!-- 내가 전체공개로 공유한 게시물 (JS 렌더링) -->
+        <div id="allFeed"></div>
+
+        <div class="nblog-card card" style="cursor:pointer" onclick="openPostDetail('sp-a1',{authorName:'이웃 최○○님',authorEmoji:'🌺',text:'베란다 화분에 꽃이 피었어요. 너무 예뻐서!',time:'어제'})">
+          <div class="nblog-img"><span>🌺</span></div>
+          <div class="nblog-info">
+            <span class="nblog-author">이웃 최○○님</span>
+            <span class="nblog-time">어제</span>
+          </div>
+          <p class="nblog-desc">베란다 화분에 꽃이 피었어요. 너무 예뻐서!</p>
+        </div>
+        <div class="nblog-card card" style="cursor:pointer" onclick="openPostDetail('sp-a2',{authorName:'이웃 정○○님',authorEmoji:'🍎',text:'마트에서 장을 보고 왔어요. 사과가 정말 탐스럽네요',time:'2일 전'})">
+          <div class="nblog-img"><span>🍎</span></div>
+          <div class="nblog-info">
+            <span class="nblog-author">이웃 정○○님</span>
+            <span class="nblog-time">2일 전</span>
+          </div>
+          <p class="nblog-desc">마트에서 장을 보고 왔어요. 사과가 정말 탐스럽네요</p>
+        </div>
+        <div class="nblog-card card" style="cursor:pointer" onclick="openPostDetail('sp-a3',{authorName:'이웃 한○○님',authorEmoji:'🌤️',text:'날씨가 좋아서 공원 벤치에서 그림을 그렸어요',time:'3일 전'})">
+          <div class="nblog-img"><span>🌤️</span></div>
+          <div class="nblog-info">
+            <span class="nblog-author">이웃 한○○님</span>
+            <span class="nblog-time">3일 전</span>
+          </div>
+          <p class="nblog-desc">날씨가 좋아서 공원 벤치에서 그림을 그렸어요</p>
+        </div>
+        <div class="nblog-card card" style="cursor:pointer" onclick="openPostDetail('sp-a4',{authorName:'이웃 오○○님',authorEmoji:'🎵',text:'손녀가 피아노 발표회를 했어요. 정말 대견했어요',time:'4일 전'})">
+          <div class="nblog-img"><span>🎵</span></div>
+          <div class="nblog-info">
+            <span class="nblog-author">이웃 오○○님</span>
+            <span class="nblog-time">4일 전</span>
+          </div>
+          <p class="nblog-desc">손녀가 피아노 발표회를 했어요. 정말 대견했어요</p>
+        </div>
       </div>
-      <div class="setting-row card">
-        <div><div class="label">📔 일기 저장 알림</div><div class="desc">일기 저장 시 보호자에게</div></div>
-        <span class="badge">켜짐</span>
-      </div>
-      <div class="setting-row card">
-        <div><div class="label">⏰ 3일 미접속 알림</div><div class="desc">3일 이상 미접속 시 경보</div></div>
-        <span class="badge">켜짐</span>
-      </div>
-      <div class="setting-row card">
-        <div><div class="label">👀 동시 보기</div><div class="desc">보호자가 함께 그림 보기</div></div>
-        <span class="badge warn">허용</span>
-      </div>
-      <button class="danger-btn" onclick="toast('보호자에게 도움 요청 알림을 보냈어요 📞')">
-        🆘 도움 요청하기
-      </button>
+
     </section>
 
   </main>
+
+  <!-- 윤곽선 전체보기 바텀시트 -->
+  <div id="outlineSheetDim" class="sheet-dim" onclick="closeOutlineSheet()"></div>
+  <div id="outlineSheet" class="outline-sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header">
+      <span class="sheet-title">윤곽선 전체보기</span>
+      <button class="sheet-close" onclick="closeOutlineSheet()">✕</button>
+    </div>
+    <input id="outlineSearch" class="sheet-search" placeholder="🔍 윤곽선 이름 검색..." oninput="renderOutlines()">
+    <div id="categoryRow" class="sheet-cats"></div>
+    <div id="outlineGrid" class="sheet-grid"></div>
+  </div>
 
   <!-- 바텀 네비 -->
   <nav>
     <button class="active" onclick="showScreen('haru',this)">
       <span class="nav-icon">🌼</span><span>하루</span>
     </button>
-    <button onclick="showScreen('mydiaries',this)">
-      <span class="nav-icon">📔</span><span>나</span>
-    </button>
     <button onclick="showScreen('community',this)">
       <span class="nav-icon">🌍</span><span>이웃</span>
     </button>
-    <button onclick="showScreen('book',this)">
-      <span class="nav-icon">📖</span><span>책·연결</span>
+    <button onclick="showScreen('mydiaries',this)">
+      <span class="nav-icon">📔</span><span>나</span>
     </button>
   </nav>
 
@@ -1020,9 +1575,41 @@ nav button.active{background:var(--purple-soft);color:var(--purple)}
       <img id="diaryModalImg" alt="저장한 그림"/>
       <div class="diary-modal-date" id="diaryModalDate"></div>
       <div class="diary-modal-text" id="diaryModalText"></div>
+      <textarea class="diary-edit-textarea" id="diaryEditTextarea"></textarea>
+      <div class="diary-edit-save-row" id="diaryEditSaveRow">
+        <button class="diary-edit-save-btn" onclick="saveDiaryEdit()">💾 글 저장</button>
+        <button class="diary-edit-cancel-btn" onclick="cancelDiaryEdit()">취소</button>
+      </div>
+      <button class="diary-redraw-btn" id="diaryRedrawBtn" onclick="startDrawEdit()" style="display:none">
+        🎨 그림 다시 그리기
+      </button>
       <span class="diary-modal-privacy" id="diaryModalPrivacy"></span>
       <div class="diary-modal-actions">
+        <div class="diary-modal-action-row">
+          <button type="button" class="diary-edit-btn" id="diaryEditBtn" onclick="startDiaryEdit()">✏️ 수정하기</button>
+          <button type="button" class="diary-share-btn" onclick="shareDiary()">🔗 공유하기</button>
+        </div>
         <button type="button" class="diary-delete-btn" onclick="deleteCurrentDiary()">🗑️ 이 일기 지우기</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 게시물 상세 모달 -->
+  <div id="postModal" class="post-modal" onclick="if(event.target===this)closePostDetail()">
+    <div class="post-modal-sheet" role="dialog">
+      <button class="post-modal-close" onclick="closePostDetail()">✕</button>
+      <div id="postModalImg"></div>
+      <div class="post-modal-author" id="postModalAuthor"></div>
+      <div class="post-modal-text" id="postModalText"></div>
+      <div class="reaction-row" id="postReactionRow"></div>
+      <div class="comments-section">
+        <div class="comments-title">💬 댓글</div>
+        <div id="postCommentsList"></div>
+        <div class="comment-input-row">
+          <input class="comment-input" id="commentInput" placeholder="댓글을 남겨보세요..."
+            onkeydown="if(event.key==='Enter')submitComment()"/>
+          <button class="comment-send-btn" onclick="submitComment()">↑</button>
+        </div>
       </div>
     </div>
   </div>
@@ -1174,6 +1761,7 @@ let drawing = false;
 let navBtns = [];
 let myDiaries = [];
 let activeDiaryIndex = null;
+let editingDiaryIndex = null;
 
 
 function escapeHtml(value) {
@@ -1288,6 +1876,7 @@ async function loadMyDiaries() {
 
   renderMyDiaries();
   updateBookSummary();
+  refreshHaruPreview();
 }
 
 function renderMyDiaries() {
@@ -1337,6 +1926,18 @@ function updateBookSummary() {
   if (subEl) {
     subEl.textContent = `${now.getFullYear()}년 ${now.getMonth() + 1}월 · ${count}개의 그림일기`;
   }
+
+  // 홈 화면 통계 업데이트
+  const totalEl = document.getElementById('statTotal');
+  const monthlyEl = document.getElementById('statMonthly');
+  if (totalEl) totalEl.textContent = count;
+  if (monthlyEl) {
+    const thisMonth = myDiaries.filter(d => {
+      const date = new Date(d.date);
+      return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
+    }).length;
+    monthlyEl.textContent = thisMonth;
+  }
   if (!gridEl) return;
 
   if (!count) {
@@ -1371,6 +1972,285 @@ function openDiaryDetail(index) {
 function closeDiaryDetail() {
   activeDiaryIndex = null;
   document.getElementById("diaryModal").classList.remove("show");
+  cancelDiaryEdit();
+}
+
+// ── 일기 수정 ──
+function startDiaryEdit() {
+  const textEl     = document.getElementById('diaryModalText');
+  const textarea   = document.getElementById('diaryEditTextarea');
+  const saveRow    = document.getElementById('diaryEditSaveRow');
+  const editBtn    = document.getElementById('diaryEditBtn');
+  const redrawBtn  = document.getElementById('diaryRedrawBtn');
+  textarea.value   = (textEl.textContent === '(내용 없음)') ? '' : textEl.textContent;
+  textEl.style.display    = 'none';
+  textarea.style.display  = 'block';
+  saveRow.style.display   = 'grid';
+  editBtn.style.display   = 'none';
+  redrawBtn.style.display = 'block';
+  textarea.focus();
+}
+
+function cancelDiaryEdit() {
+  const textEl    = document.getElementById('diaryModalText');
+  const textarea  = document.getElementById('diaryEditTextarea');
+  const saveRow   = document.getElementById('diaryEditSaveRow');
+  const editBtn   = document.getElementById('diaryEditBtn');
+  const redrawBtn = document.getElementById('diaryRedrawBtn');
+  if(!textEl) return;
+  textEl.style.display    = '';
+  textarea.style.display  = 'none';
+  saveRow.style.display   = 'none';
+  editBtn.style.display   = '';
+  redrawBtn.style.display = 'none';
+}
+
+async function saveDiaryEdit() {
+  if(activeDiaryIndex === null) return;
+  const textarea = document.getElementById('diaryEditTextarea');
+  const newText  = textarea.value.trim();
+  const diary    = myDiaries[activeDiaryIndex];
+
+  diary.text = newText;
+
+  if(window.supabase && diary.source === 'supabase' && isSupabaseDiaryId(diary.id)) {
+    const { error } = await window.supabase
+      .from('diaries').update({ text_content: newText }).eq('id', diary.id);
+    if(error){ toast('저장 중 문제가 생겼어요'); return; }
+  }
+
+  const items = JSON.parse(localStorage.getItem('haruDiaries2')||'[]');
+  const idx = items.findIndex(it => it.id === diary.id || it.image === diary.image);
+  if(idx !== -1){ items[idx].text = newText; localStorage.setItem('haruDiaries2', JSON.stringify(items)); }
+
+  document.getElementById('diaryModalText').textContent = newText || '(내용 없음)';
+  cancelDiaryEdit();
+  renderMyDiaries();
+  refreshHaruPreview();
+  toast('일기를 수정했어요 ✏️');
+}
+
+// ── 그림 다시 그리기 (수정 모드) ──
+function startDrawEdit() {
+  if(activeDiaryIndex === null) return;
+  const diary = myDiaries[activeDiaryIndex];
+  editingDiaryIndex = activeDiaryIndex;
+  closeDiaryDetail();
+
+  // 캔버스 초기화 후 기존 그림 로드
+  strokes = [];
+  currentOutlineSVG = null;
+  const w = canvas.width / devicePixelRatio;
+  const h = canvas.height / devicePixelRatio;
+  ctx.clearRect(0, 0, w, h);
+
+  if(diary.image) {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => { ctx.drawImage(img, 0, 0, w, h); hint.style.display = 'none'; };
+    img.onerror = () => {};
+    img.src = diary.image;
+  }
+
+  showScreen('draw', navBtns[0]);
+  toast('기존 그림 위에 덧그리거나 새로 그려보세요 ✏️');
+}
+
+// ── 이웃 피드 공유 ──
+function shareDiary() {
+  if(activeDiaryIndex === null) return;
+  const diary   = myDiaries[activeDiaryIndex];
+  _pushSharedPost(diary.image, diary.text, diary.dateLabel, 'neighbors');
+  renderCommunityFeed();
+  closeDiaryDetail();
+  switchCommunityTab('neighbors');
+  showScreen('community', navBtns[1]);
+  toast('이웃 탭에 게시됐어요 💛');
+}
+
+function _pushSharedPost(image, text, dateLabel, shareType) {
+  const profile = JSON.parse(localStorage.getItem('haruProfile')||'{}');
+  const post = {
+    id: Date.now(),
+    shareType,
+    authorName:  profile.name  || '내 하루',
+    authorPhoto: profile.photo || null,
+    image:       image  || null,
+    text:        text   || '',
+    dateLabel:   dateLabel || '',
+    sharedAt:    new Date().toISOString(),
+  };
+  const posts = JSON.parse(localStorage.getItem('haruShared')||'[]');
+  posts.unshift(post);
+  localStorage.setItem('haruShared', JSON.stringify(posts.slice(0, 30)));
+}
+
+function switchCommunityTab(tab, btn) {
+  document.querySelectorAll('.community-tab').forEach(b => b.classList.remove('active'));
+  const activeBtn = btn || document.querySelector(`.community-tab[onclick*="'${tab}'"]`);
+  if(activeBtn) activeBtn.classList.add('active');
+  document.getElementById('communityTabNeighbors').hidden = (tab !== 'neighbors');
+  document.getElementById('communityTabAll').hidden = (tab !== 'all');
+}
+
+function _sharedPostHtml(p) {
+  const imgHtml = p.image
+    ? `<img src="${escapeHtml(p.image)}" alt="공유 그림">`
+    : `<span style="font-size:52px">📔</span>`;
+  const avatarHtml = p.authorPhoto
+    ? `<img src="${escapeHtml(p.authorPhoto)}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;border:1.5px solid var(--orange)">`
+    : `<span style="font-size:18px">🌸</span>`;
+  const descHtml = p.text
+    ? `<p class="nblog-desc">${escapeHtml(p.text.slice(0,60))}${p.text.length>60?'…':''}</p>`
+    : '';
+  const postData = JSON.stringify({authorName:p.authorName,authorPhoto:p.authorPhoto||null,image:p.image||null,text:p.text||'',time:relativeTime(p.sharedAt)}).replace(/"/g,'&quot;');
+  return `
+    <div class="nblog-card card" style="position:relative;cursor:pointer" onclick="openPostDetail(${p.id},JSON.parse(this.dataset.post))" data-post="${postData}">
+      <div class="nblog-img">${imgHtml}</div>
+      <div class="nblog-info">
+        <span class="nblog-author" style="display:flex;align-items:center;gap:6px">${avatarHtml}${escapeHtml(p.authorName)}</span>
+        <span class="nblog-time">${relativeTime(p.sharedAt)}</span>
+      </div>
+      ${descHtml}
+      <button onclick="event.stopPropagation();deleteSharedPost(${p.id})" style="position:absolute;top:8px;right:8px;border:0;background:rgba(255,255,255,.85);border-radius:50%;width:26px;height:26px;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 4px rgba(0,0,0,.12)" title="게시물 삭제">✕</button>
+    </div>`;
+}
+
+function renderCommunityFeed() {
+  const posts = JSON.parse(localStorage.getItem('haruShared')||'[]');
+  const neighborFeed = document.getElementById('communityFeed');
+  const allFeed      = document.getElementById('allFeed');
+  if(neighborFeed) neighborFeed.innerHTML = posts.filter(p => !p.shareType || p.shareType === 'neighbors').map(_sharedPostHtml).join('');
+  if(allFeed)      allFeed.innerHTML      = posts.filter(p => p.shareType === 'all').map(_sharedPostHtml).join('');
+}
+
+function deleteSharedPost(id) {
+  const posts = JSON.parse(localStorage.getItem('haruShared')||'[]')
+    .filter(p => p.id !== id);
+  localStorage.setItem('haruShared', JSON.stringify(posts));
+  renderCommunityFeed();
+}
+
+// ── 게시물 상세 (반응 + 댓글) ──
+let _activePostId = null;
+let _activePostData = null;
+const REACTIONS = ['😍 예뻐요','👏 멋있어요','🥰 귀여워요','💪 응원해요'];
+
+function openPostDetail(postId, postData) {
+  _activePostId = String(postId);
+  _activePostData = postData;
+  const modal = document.getElementById('postModal');
+
+  // 이미지
+  const imgEl = document.getElementById('postModalImg');
+  if(postData.image) {
+    imgEl.innerHTML = `<img class="post-modal-img" src="${escapeHtml(postData.image)}" alt="게시물 그림">`;
+  } else if(postData.authorEmoji) {
+    imgEl.innerHTML = `<div class="post-modal-img-placeholder">${postData.authorEmoji}</div>`;
+  } else {
+    imgEl.innerHTML = `<div class="post-modal-img-placeholder">📔</div>`;
+  }
+
+  // 작성자
+  const avatarHtml = postData.authorPhoto
+    ? `<img src="${escapeHtml(postData.authorPhoto)}" style="width:30px;height:30px;border-radius:50%;object-fit:cover;border:1.5px solid var(--orange)">`
+    : `<span style="font-size:22px">${postData.authorEmoji||'🌸'}</span>`;
+  document.getElementById('postModalAuthor').innerHTML =
+    `${avatarHtml}<span>${escapeHtml(postData.authorName||'')}</span><span style="font-size:12px;font-weight:700;color:var(--muted);margin-left:auto">${escapeHtml(postData.time||'')}</span>`;
+
+  // 본문
+  document.getElementById('postModalText').textContent = postData.text || '';
+
+  _renderPostReactions();
+  _renderPostComments();
+  document.getElementById('commentInput').value = '';
+  modal.classList.add('show');
+}
+
+function closePostDetail() {
+  document.getElementById('postModal').classList.remove('show');
+  _activePostId = null;
+  _activePostData = null;
+}
+
+function _renderPostReactions() {
+  const row = document.getElementById('postReactionRow');
+  if(!row || !_activePostId) return;
+  const all = JSON.parse(localStorage.getItem('haruReactions')||'{}');
+  const mine = JSON.parse(localStorage.getItem('haruMyReactions')||'{}');
+  const counts = all[_activePostId] || {};
+  const mySet  = mine[_activePostId] || [];
+  row.innerHTML = REACTIONS.map(r => {
+    const n = counts[r] || 0;
+    const active = mySet.includes(r) ? 'active' : '';
+    return `<button class="reaction-btn ${active}" onclick="toggleReaction('${r}')">${r}<span class="reaction-count">${n||''}</span></button>`;
+  }).join('');
+}
+
+function toggleReaction(type) {
+  if(!_activePostId) return;
+  const all  = JSON.parse(localStorage.getItem('haruReactions')||'{}');
+  const mine = JSON.parse(localStorage.getItem('haruMyReactions')||'{}');
+  if(!all[_activePostId])  all[_activePostId]  = {};
+  if(!mine[_activePostId]) mine[_activePostId] = [];
+
+  const mySet = mine[_activePostId];
+  const idx = mySet.indexOf(type);
+  if(idx === -1) {
+    mySet.push(type);
+    all[_activePostId][type] = (all[_activePostId][type]||0) + 1;
+  } else {
+    mySet.splice(idx, 1);
+    all[_activePostId][type] = Math.max(0, (all[_activePostId][type]||1) - 1);
+  }
+  mine[_activePostId] = mySet;
+  localStorage.setItem('haruReactions',   JSON.stringify(all));
+  localStorage.setItem('haruMyReactions', JSON.stringify(mine));
+  _renderPostReactions();
+}
+
+function _renderPostComments() {
+  const list = document.getElementById('postCommentsList');
+  if(!list || !_activePostId) return;
+  const all = JSON.parse(localStorage.getItem('haruComments')||'{}');
+  const comments = all[_activePostId] || [];
+  if(!comments.length) {
+    list.innerHTML = '<div class="no-comments">아직 댓글이 없어요. 첫 댓글을 남겨보세요!</div>';
+    return;
+  }
+  list.innerHTML = comments.map(c => `
+    <div class="comment-item">
+      <span class="comment-avatar">🌸</span>
+      <div class="comment-body">
+        <div class="comment-author">${escapeHtml(c.name)}</div>
+        <div class="comment-text">${escapeHtml(c.text)}</div>
+        <div class="comment-time">${relativeTime(c.at)}</div>
+      </div>
+    </div>`).join('');
+}
+
+function submitComment() {
+  if(!_activePostId) return;
+  const input = document.getElementById('commentInput');
+  const text  = (input.value||'').trim();
+  if(!text) return;
+  const profile  = JSON.parse(localStorage.getItem('haruProfile')||'{}');
+  const all      = JSON.parse(localStorage.getItem('haruComments')||'{}');
+  if(!all[_activePostId]) all[_activePostId] = [];
+  all[_activePostId].push({ name: profile.name||'내 하루', text, at: new Date().toISOString() });
+  localStorage.setItem('haruComments', JSON.stringify(all));
+  input.value = '';
+  _renderPostComments();
+}
+
+function relativeTime(iso) {
+  const diff = Date.now() - new Date(iso).getTime();
+  const m = Math.floor(diff / 60000);
+  if(m < 1)  return '방금 전';
+  if(m < 60) return `${m}분 전`;
+  const h = Math.floor(m / 60);
+  if(h < 24) return `${h}시간 전`;
+  return `${Math.floor(h/24)}일 전`;
 }
 
 function deleteCurrentDiary() {
@@ -1501,11 +2381,26 @@ function setTool(next, btn){
   }
 }
 
+function toggleColorPicker(){
+  const panel   = document.getElementById('colorPickerPanel');
+  const chevron = document.getElementById('colorPickerChevron');
+  const toggle  = document.getElementById('colorPickerToggle');
+  const open    = panel.classList.toggle('open');
+  chevron.classList.toggle('open', open);
+  toggle.classList.toggle('open', open);
+}
+
 function setColor(c, btn){
   color = c;
   setTool("pen", document.getElementById("penBtn"));
   document.querySelectorAll(".color-dot").forEach(d=>d.classList.remove("active"));
   if(btn) btn.classList.add("active");
+  // 인디케이터 갱신
+  const dot = document.getElementById('colorCurrentDot');
+  if(dot) dot.style.background = c;
+  // 색 선택 후 패널 닫기
+  const panel = document.getElementById('colorPickerPanel');
+  if(panel && panel.classList.contains('open')) toggleColorPicker();
 }
 
 function undoDraw(){
@@ -1560,6 +2455,7 @@ function stamp(name){
   currentOutlineSVG = { name, pathData };
   addFavorite(name);
   redrawAll();
+  closeOutlineSheet();
   showScreen("draw", navBtns[0]);
   hint.style.display = "none";
   toast(`${name} 윤곽선을 캔버스에 올렸어요 ✨`);
@@ -1686,6 +2582,17 @@ function renderOutlines(){
     </button>`).join("");
 }
 
+// ── 윤곽선 바텀시트 ──
+function openOutlineSheet(){
+  renderOutlines();
+  document.getElementById('outlineSheet').classList.add('open');
+  document.getElementById('outlineSheetDim').classList.add('open');
+}
+function closeOutlineSheet(){
+  document.getElementById('outlineSheet').classList.remove('open');
+  document.getElementById('outlineSheetDim').classList.remove('open');
+}
+
 // ── 화면 전환 ──
 function showScreen(id, btn){
   document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
@@ -1708,56 +2615,58 @@ function refreshHaruPreview(){
   const wrap = document.getElementById('haruTodayPreview');
   if(!wrap) return;
 
-  // 1) 그리던 중인 그림이 있으면 캔버스 미리보기
+  // 1) 그리던 중인 그림이 있으면 미리보기
   if(strokes && strokes.length > 0){
     const dataUrl = canvas.toDataURL('image/png');
     wrap.innerHTML = `
-      <div class="haru-today-label">✏️ 그리던 그림</div>
-      <div class="haru-today-card" onclick="enterDrawMode()">
-        <div class="haru-today-img"><img src="${dataUrl}" alt="그리던 그림"></div>
-        <div class="haru-today-footer">
-          <span class="haru-today-status">계속 그리기</span>
-          <span class="haru-today-action">탭하면 이어 그릴 수 있어요 →</span>
+      <div class="haru-today-drawn" onclick="enterDrawMode()">
+        <div class="haru-today-drawn-img"><img src="${dataUrl}" alt="그리던 그림"></div>
+        <div class="haru-today-drawn-footer">
+          <span class="haru-today-drawn-status">✏️ 그리던 중</span>
+          <span class="haru-today-drawn-action">이어 그리기 →</span>
         </div>
       </div>`;
     return;
   }
 
-  // 2) 오늘 저장한 일기가 있으면 표시
-  const saved = JSON.parse(localStorage.getItem('haruDiaries2')||'[]');
+  // 2) 오늘 저장한 일기가 있으면 크게 표시 (myDiaries 우선, 없으면 localStorage)
   const todayStr = new Date().toISOString().split('T')[0];
-  const todayDiary = saved.find(d => (d.date||'').startsWith(todayStr));
+  let todayDiary = myDiaries.find(d => (d.date||'').startsWith(todayStr));
+  if(!todayDiary){
+    const saved = JSON.parse(localStorage.getItem('haruDiaries2')||'[]');
+    const local = saved.find(d => (d.date||'').startsWith(todayStr));
+    if(local) todayDiary = { image: local.image, text: local.text };
+  }
   if(todayDiary){
     const imgTag = todayDiary.image
       ? `<img src="${todayDiary.image}" alt="오늘 일기">`
-      : `<span style="font-size:48px">📔</span>`;
+      : `<span style="font-size:56px">📔</span>`;
+    const textHtml = todayDiary.text
+      ? `<div class="haru-today-drawn-text">${escapeHtml(todayDiary.text)}</div>`
+      : '';
     wrap.innerHTML = `
-      <div class="haru-today-label">📔 오늘 그린 일기</div>
-      <div class="haru-today-card" onclick="showScreen('mydiaries',navBtns[1])">
-        <div class="haru-today-img">${imgTag}</div>
-        <div class="haru-today-footer">
-          <span class="haru-today-status">저장 완료 ✅</span>
-          <span class="haru-today-action">내 일기에서 보기 →</span>
-        </div>
+      <div class="haru-today-drawn" onclick="openTodayDiary()">
+        <div class="haru-today-drawn-img">${imgTag}</div>
+        ${textHtml}
       </div>`;
     return;
   }
 
-  // 3) 아무것도 없으면 빈 프레임
+  // 3) 아직 안 그렸으면 → 큰 그리기 CTA
   wrap.innerHTML = `
-    <div class="haru-today-label">🖼️ 오늘의 그림일기</div>
-    <div class="haru-today-card" onclick="enterDrawMode()">
-      <div class="haru-today-img haru-today-blank">
-        <div class="haru-blank-inner">
-          <span style="font-size:40px">🎨</span>
-          <span class="haru-blank-msg">아직 오늘 그림이 없어요<br>아래 버튼을 눌러 시작해봐요</span>
-        </div>
-      </div>
-      <div class="haru-today-footer">
-        <span class="haru-today-status" style="color:var(--muted)">오늘 일기 없음</span>
-        <span class="haru-today-action">그리기 시작하기 →</span>
-      </div>
-    </div>`;
+    <button class="haru-nodraw-cta" onclick="enterDrawMode()">
+      <span class="haru-nodraw-emoji">🎨</span>
+      <span class="haru-nodraw-title">오늘 그림을 그려볼까요?</span>
+      <span class="haru-nodraw-sub">오늘 있었던 일을<br>그림으로 남겨봐요</span>
+      <span class="haru-nodraw-start">지금 바로 그리기</span>
+    </button>`;
+}
+
+// ── 오늘 일기 바로 열기 ──
+function openTodayDiary(){
+  const todayStr = new Date().toISOString().split('T')[0];
+  const index = myDiaries.findIndex(d => (d.date||'').startsWith(todayStr));
+  if(index !== -1) openDiaryDetail(index);
 }
 
 // ── 그리기 시작 (하루 탭 → 그리기 화면) ──
@@ -1771,14 +2680,97 @@ function goToDiary(){
   const preview = document.getElementById("diaryPreview");
   const dataUrl = canvas.toDataURL("image/png");
   preview.innerHTML = `<img src="${dataUrl}" alt="오늘의 그림"/>`;
-  showScreen("diary", navBtns[0]); // 하루 탭 강조 유지
-  setTimeout(()=>{
-    speak("그림일기를 완성해볼까요? 오늘 있었던 일을 적어보세요.");
-  }, 400);
+
+  // 수정 모드: 기존 텍스트·공개 설정 미리 채우기
+  if(editingDiaryIndex !== null) {
+    const diary = myDiaries[editingDiaryIndex];
+    document.getElementById('diaryText').value = diary.text || '';
+    updateCharCount();
+    const saveBtn = document.querySelector('.save-btn');
+    if(saveBtn) saveBtn.textContent = '✏️ 수정 저장하기';
+  }
+
+  showScreen("diary", navBtns[0]);
+  setTimeout(()=>{ speak("그림일기를 완성해볼까요? 오늘 있었던 일을 적어보세요."); }, 400);
 }
 function updateCharCount(){
   document.getElementById("charCount").textContent =
     document.getElementById("diaryText").value.length;
+}
+
+// ── AI 하루 질문 (홈 화면 카드용) ──
+const haruQuestions = [
+  '오늘 하루 어떠셨어요? 🌷',
+  '오늘 가장 즐거웠던 순간은 언제였나요? 😊',
+  '오늘 밥은 맛있게 드셨어요? 🍚',
+  '요즘 날씨가 어떤가요? 산책하기 좋으셨나요? 🌿',
+  '오늘 만난 분 중에 기억에 남는 분이 있나요? 👥',
+  '최근에 감동받은 일이 있으셨나요? ✨',
+  '오늘 감사한 일이 있으셨나요? 🙏',
+  '요즘 좋아하시는 음식이 있으신가요? 🥢',
+  '오늘 어떤 그림을 그리고 싶으신가요? 🎨',
+  '기분 좋은 일이 있으셨나요? 꼭 들려주세요 🌸',
+];
+let haruQIdx = 0;
+
+// 답장 후 하루 반응 멘트
+const haruAcks = [
+  '따뜻한 이야기 감사해요 🌷',
+  '소중한 말씀 잘 들었어요 😊',
+  '그런 일이 있으셨군요! ✨',
+  '정말 좋은 하루를 보내셨군요 🌸',
+  '감사해요, 오늘도 수고하셨어요 🙏',
+];
+let haruAckIdx = 0;
+
+function _haruFadeMsg(el, text, cb){
+  el.style.opacity = '0';
+  el.style.transform = 'translateY(8px)';
+  setTimeout(()=>{
+    el.textContent = text;
+    el.style.opacity = '1';
+    el.style.transform = 'translateY(0)';
+    if(cb) cb();
+  }, 220);
+}
+
+// 텍스트 전송
+function sendHaruMsg(){
+  const input = document.getElementById('haruAiInput');
+  const msgEl = document.getElementById('haruAiMessage');
+  const msg = input.value.trim();
+  if(!msg || !msgEl) return;
+  input.value = '';
+  input.blur();
+
+  // 1) 반응 멘트 표시
+  const ack = haruAcks[haruAckIdx++ % haruAcks.length];
+  _haruFadeMsg(msgEl, ack, ()=>{ speak(ack); });
+
+  // 2) 2.8초 후 다음 질문
+  setTimeout(()=>{
+    haruQIdx = (haruQIdx + 1) % haruQuestions.length;
+    _haruFadeMsg(msgEl, haruQuestions[haruQIdx]);
+  }, 2800);
+}
+
+// 음성 입력
+function startHaruVoice(){
+  const btn = document.getElementById('haruVoiceBtn');
+  const input = document.getElementById('haruAiInput');
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if(!SR){ toast('음성 인식이 지원되지 않는 브라우저예요'); return; }
+  const rec = new SR();
+  rec.lang = 'ko-KR';
+  rec.onstart = ()=>{ btn.classList.add('recording'); toast('하루에게 말씀해주세요 🎤'); };
+  rec.onresult = e=>{
+    btn.classList.remove('recording');
+    input.value = e.results[0][0].transcript;
+    sendHaruMsg();
+  };
+  rec.onerror = ()=>{ btn.classList.remove('recording'); toast('음성 인식 오류가 발생했어요'); };
+  rec.onend = ()=> btn.classList.remove('recording');
+  rec.start();
 }
 
 // ── AI 대화 ──
@@ -1817,9 +2809,64 @@ function setPrivacy(next, btn){
 }
 
 // ── 저장 ──
+async function _updateDiaryDraw(){
+  toast('수정 중이에요... ⏳');
+  const diary   = myDiaries[editingDiaryIndex];
+  const newText = document.getElementById('diaryText').value;
+  try {
+    const dataUrl = canvas.toDataURL('image/png');
+    const blob    = await (await fetch(dataUrl)).blob();
+    const fileName = `diary_${Date.now()}.png`;
+
+    const { error: upErr } = await window.supabase.storage
+      .from('diary-images').upload(fileName, blob, { contentType:'image/png' });
+    if(upErr) throw upErr;
+
+    const { data: urlData } = window.supabase.storage.from('diary-images').getPublicUrl(fileName);
+    const newUrl = urlData.publicUrl;
+
+    // 기존 이미지 삭제
+    const oldPath = storagePathFromUrl(diary.image);
+    if(oldPath) await window.supabase.storage.from('diary-images').remove([oldPath]);
+
+    // DB 업데이트
+    if(isSupabaseDiaryId(diary.id)){
+      const { error } = await window.supabase.from('diaries')
+        .update({ drawing_url: newUrl, text_content: newText })
+        .eq('id', diary.id);
+      if(error) throw error;
+    }
+
+    // localStorage 업데이트
+    const items = JSON.parse(localStorage.getItem('haruDiaries2')||'[]');
+    const idx = items.findIndex(it => it.id === diary.id || it.image === diary.image);
+    if(idx !== -1){ items[idx].image = newUrl; items[idx].text = newText; }
+    localStorage.setItem('haruDiaries2', JSON.stringify(items));
+
+    // 저장 버튼 원복
+    const saveBtn = document.querySelector('.save-btn');
+    if(saveBtn) saveBtn.textContent = '💾 일기 저장하기';
+
+    editingDiaryIndex = null;
+    toast('그림일기를 수정했어요 ✏️');
+    speak('그림일기를 수정했어요. 멋지게 바뀌었어요!');
+    await loadMyDiaries();
+    showScreen('mydiaries', navBtns[2]);
+  } catch(err) {
+    console.error(err);
+    toast('수정 중 문제가 생겼어요');
+  }
+}
+
 async function saveDiary(){
+  // 수정 모드
+  if(editingDiaryIndex !== null) {
+    await _updateDiaryDraw();
+    return;
+  }
+
   toast('저장 중이에요... ⏳')
-  
+
   try {
     // 1. 캔버스 이미지 → Blob
     const dataUrl = canvas.toDataURL('image/png')
@@ -1870,7 +2917,22 @@ async function saveDiary(){
     toast('그림일기를 저장했어요 💾')
     speak('그림일기를 저장했어요. 오늘도 수고하셨어요!')
     await loadMyDiaries()
-    showScreen('mydiaries', navBtns[1])
+
+    if(privacy === '이웃만') {
+      _pushSharedPost(urlData.publicUrl, document.getElementById('diaryText').value,
+        new Date().toLocaleDateString('ko-KR',{month:'long',day:'numeric',weekday:'short'}), 'neighbors');
+      renderCommunityFeed();
+      showScreen('community', navBtns[1]);
+      switchCommunityTab('neighbors');
+    } else if(privacy === '전체공개') {
+      _pushSharedPost(urlData.publicUrl, document.getElementById('diaryText').value,
+        new Date().toLocaleDateString('ko-KR',{month:'long',day:'numeric',weekday:'short'}), 'all');
+      renderCommunityFeed();
+      showScreen('community', navBtns[1]);
+      switchCommunityTab('all');
+    } else {
+      showScreen('haru', navBtns[0]);
+    }
 
   } catch(err) {
     console.error(err)
@@ -2224,10 +3286,89 @@ renderOutlines();
   const days = ['일','월','화','수','목','금','토'];
   const now = new Date();
   const m = now.getMonth()+1, d = now.getDate(), w = days[now.getDay()];
-  const el = document.getElementById('haruHomeDate');
-  if(el) el.textContent = `📅 ${m}월 ${d}일 ${w}요일`;
+  const bigEl = document.getElementById('haruDateBig');
+  if(bigEl) bigEl.textContent = `${m}월 ${d}일 ${w}요일`;
 })();
 refreshHaruPreview();
+loadProfile();
+renderCommunityFeed();
+
+// ── 프로필 ──
+function loadProfile(){
+  const profile = JSON.parse(localStorage.getItem('haruProfile')||'{}');
+  const nameEl = document.getElementById('profileNameEl');
+  const img    = document.getElementById('profilePhotoImg');
+  const emoji  = document.getElementById('profilePhotoEmoji');
+  if(nameEl) nameEl.textContent = profile.name || '내 하루';
+  if(img && emoji){
+    if(profile.photo){
+      img.src = profile.photo;
+      img.style.display = 'block';
+      emoji.style.display = 'none';
+    } else {
+      img.style.display = 'none';
+      emoji.style.display = '';
+    }
+  }
+}
+
+function changeProfilePhoto(){
+  document.getElementById('profilePhotoInput').click();
+}
+
+function onProfilePhotoChange(e){
+  const file = e.target.files[0];
+  if(!file) return;
+  e.target.value = '';
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const src = new Image();
+    src.onload = () => {
+      const size = 200;
+      const cvs  = document.createElement('canvas');
+      cvs.width = cvs.height = size;
+      const c = cvs.getContext('2d');
+      const min = Math.min(src.width, src.height);
+      const sx = (src.width  - min) / 2;
+      const sy = (src.height - min) / 2;
+      c.drawImage(src, sx, sy, min, min, 0, 0, size, size);
+      const dataUrl = cvs.toDataURL('image/jpeg', 0.82);
+      const profile = JSON.parse(localStorage.getItem('haruProfile')||'{}');
+      profile.photo = dataUrl;
+      localStorage.setItem('haruProfile', JSON.stringify(profile));
+      loadProfile();
+      toast('프로필 사진을 바꿨어요 📷');
+    };
+    src.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function startEditName(){
+  const row   = document.getElementById('profileNameEditRow');
+  const input = document.getElementById('profileNameInput');
+  const profile = JSON.parse(localStorage.getItem('haruProfile')||'{}');
+  input.value = profile.name || '';
+  row.hidden  = false;
+  input.focus();
+  input.select();
+}
+
+function cancelEditName(){
+  document.getElementById('profileNameEditRow').hidden = true;
+}
+
+function saveProfileName(){
+  const input = document.getElementById('profileNameInput');
+  const name  = input.value.trim();
+  if(!name){ toast('닉네임을 입력해주세요 ✏️'); return; }
+  const profile = JSON.parse(localStorage.getItem('haruProfile')||'{}');
+  profile.name  = name;
+  localStorage.setItem('haruProfile', JSON.stringify(profile));
+  document.getElementById('profileNameEditRow').hidden = true;
+  loadProfile();
+  toast(`닉네임을 "${name}"으로 저장했어요 ✨`);
+}
 
 // PWA 서비스워커
 if("serviceWorker" in navigator){
