@@ -1,4 +1,4 @@
-const CACHE_NAME = "haru-diary-mobile-v2";
+const CACHE_NAME = "haru-diary-mobile-v3";
 const PRECACHE = [
   "./",
   "./index.html",
