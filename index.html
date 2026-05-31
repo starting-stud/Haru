@@ -601,7 +601,7 @@
     }
 
     .color-picker-panel.open {
-      max-height: 120px;
+      max-height: 200px;
       padding: 12px 14px
     }
 
@@ -932,27 +932,38 @@
     /* ── 인스타그램형 피드 (하루 탭) ── */
     .fab-draw-btn {
       position: absolute;
-      right: 20px;
-      bottom: 90px;
-      width: 58px;
-      height: 58px;
-      border-radius: 50%;
+      right: 16px;
+      bottom: 108px;
+      height: 56px;
+      padding: 0 22px 0 16px;
+      border-radius: 28px;
       background: var(--purple);
       color: white;
       border: none;
-      box-shadow: 0 6px 18px rgba(94, 63, 140, 0.4);
+      box-shadow: 0 6px 20px rgba(94, 63, 140, 0.45);
       display: flex;
       align-items: center;
-      justify-content: center;
-      font-size: 24px;
+      gap: 8px;
       z-index: 99;
       cursor: pointer;
-      transition: all 0.2s cubic-bezier(0.25, 1, 0.5, 1);
+      transition: transform 0.15s, box-shadow 0.15s;
     }
 
     .fab-draw-btn:active {
-      transform: scale(0.9);
-      box-shadow: 0 3px 8px rgba(94, 63, 140, 0.4);
+      transform: scale(0.95);
+      box-shadow: 0 3px 10px rgba(94, 63, 140, 0.4);
+    }
+
+    .fab-draw-icon {
+      font-size: 22px;
+      line-height: 1;
+    }
+
+    .fab-draw-label {
+      font-size: 17px;
+      font-weight: 800;
+      letter-spacing: -0.3px;
+      font-family: inherit;
     }
 
     .insta-feed-card {
@@ -1042,6 +1053,63 @@
     .insta-feed-btn.active {
       color: var(--orange);
     }
+
+    .reaction-summary-btn.active { color: var(--orange); }
+
+    /* ── 감정 표현 행 ── */
+    .reaction-row {
+      display: flex;
+      gap: 6px;
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+      overflow-x: auto;
+    }
+
+    .reaction-btn {
+      flex: 1;
+      min-width: 56px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      padding: 8px 6px;
+      border: 1.5px solid var(--border);
+      border-radius: 14px;
+      background: white;
+      cursor: pointer;
+      transition: transform .15s, border-color .15s, background .15s;
+    }
+
+    .reaction-btn.selected {
+      border-color: var(--purple2);
+      background: var(--purple-soft);
+    }
+
+    .reaction-btn:active { transform: scale(.93); }
+
+    .reaction-btn.pop {
+      animation: reactionPop .3s cubic-bezier(.36,1.6,.6,1);
+    }
+    @keyframes reactionPop {
+      50% { transform: scale(1.25); }
+    }
+
+    .reaction-emoji { font-size: 22px; line-height: 1; }
+
+    .reaction-label {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--muted);
+    }
+    .reaction-btn.selected .reaction-label { color: var(--purple); }
+
+    .reaction-count {
+      font-size: 12px;
+      font-weight: 800;
+      color: var(--ink);
+    }
+    .reaction-btn.selected .reaction-count { color: var(--purple2); }
 
     /* 프로필 헤더 */
     .profile-header-card {
@@ -1238,6 +1306,27 @@
       color: white;
       align-self: flex-end;
       border-bottom-right-radius: 4px;
+    }
+
+    .chat-diary-img-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      padding: 10px !important;
+      max-width: 75% !important;
+    }
+
+    .chat-diary-img-label {
+      font-size: 12px;
+      color: var(--muted);
+      font-weight: 700;
+    }
+
+    .chat-diary-img {
+      width: 100%;
+      border-radius: 10px;
+      display: block;
+      border: 1px solid var(--border);
     }
 
     .chat-input-row {
@@ -1629,6 +1718,168 @@
       font-weight: 800;
       color: var(--purple);
     }
+
+    /* ── 댓글 시트 ── */
+    .comment-dim {
+      display: none;
+      position: absolute;
+      inset: 0;
+      background: rgba(0,0,0,.35);
+      z-index: 200;
+    }
+    .comment-dim.open { display: block; }
+
+    .comment-sheet {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      background: #FFFDF8;
+      border-radius: 24px 24px 0 0;
+      box-shadow: 0 -4px 24px rgba(63,51,40,.15);
+      z-index: 201;
+      display: flex;
+      flex-direction: column;
+      max-height: 72%;
+      transform: translateY(100%);
+      transition: transform .3s cubic-bezier(.32,1,.5,1);
+    }
+    .comment-sheet.open { transform: translateY(0); }
+
+    .comment-sheet-handle {
+      width: 40px; height: 4px;
+      background: var(--border);
+      border-radius: 2px;
+      margin: 10px auto 0;
+      flex-shrink: 0;
+    }
+
+    .comment-sheet-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 18px 10px;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .comment-sheet-title {
+      font-size: 16px;
+      font-weight: 800;
+      color: var(--ink);
+    }
+
+    .comment-sheet-close {
+      background: none;
+      border: none;
+      font-size: 18px;
+      color: var(--muted);
+      cursor: pointer;
+      padding: 4px 6px;
+      line-height: 1;
+    }
+
+    .comment-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 10px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .comment-empty {
+      text-align: center;
+      color: var(--muted);
+      font-size: 14px;
+      padding: 24px 0;
+    }
+
+    .comment-item {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+    }
+
+    .comment-avatar {
+      font-size: 22px;
+      flex-shrink: 0;
+      width: 36px;
+      height: 36px;
+      background: var(--purple-light);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .comment-body {
+      flex: 1;
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 0 14px 14px 14px;
+      padding: 8px 12px;
+    }
+
+    .comment-meta {
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+      margin-bottom: 3px;
+    }
+
+    .comment-author {
+      font-size: 13px;
+      font-weight: 800;
+      color: var(--purple);
+    }
+
+    .comment-time {
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .comment-text {
+      font-size: 15px;
+      color: var(--ink);
+      line-height: 1.5;
+      word-break: keep-all;
+    }
+
+    .comment-input-row {
+      display: flex;
+      gap: 8px;
+      padding: 10px 14px 14px;
+      border-top: 1px solid var(--border);
+      flex-shrink: 0;
+      background: #FFFDF8;
+    }
+
+    .comment-input {
+      flex: 1;
+      padding: 11px 14px;
+      border: 1.5px solid var(--border);
+      border-radius: 22px;
+      font-size: 15px;
+      font-family: inherit;
+      background: white;
+      color: var(--ink);
+      outline: none;
+    }
+    .comment-input:focus { border-color: var(--purple2); }
+
+    .comment-send-btn {
+      padding: 0 18px;
+      border: none;
+      border-radius: 22px;
+      background: var(--purple);
+      color: white;
+      font-size: 15px;
+      font-weight: 800;
+      font-family: inherit;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: opacity .15s;
+    }
+    .comment-send-btn:active { opacity: .8; }
 
     .haru-game-btn {
       width: 100%;
@@ -2509,7 +2760,7 @@
         </div>
 
         <!-- 인스타그램형 피드 1 -->
-        <div class="insta-feed-card">
+        <div class="insta-feed-card" id="post-1" onclick="openComments('post-1')" style="cursor:pointer">
           <div class="insta-feed-header">
             <div class="insta-feed-avatar">🐶</div>
             <div class="insta-feed-meta">
@@ -2526,13 +2777,13 @@
           </div>
           <p class="insta-feed-desc">우리 집 귀여운 바둑이를 그려보았습니다. 꼬리를 살랑살랑 흔드는 모습이 참 예뻐요. 🐾</p>
           <div class="insta-feed-actions">
-            <button class="insta-feed-btn active" onclick="toast('좋아요를 보냈어요 ❤️')">❤️ 12</button>
-            <button class="insta-feed-btn" onclick="toast('댓글 달기 기능을 준비 중이에요 💬')">💬 4</button>
+            <button class="insta-feed-btn reaction-summary-btn" id="react-post-1" onclick="event.stopPropagation();openComments('post-1')">❤️ 12</button>
+            <button class="insta-feed-btn comment-count-btn" onclick="event.stopPropagation();openComments('post-1')">💬 4</button>
           </div>
         </div>
 
         <!-- 피드 2 -->
-        <div class="insta-feed-card">
+        <div class="insta-feed-card" id="post-2" onclick="openComments('post-2')" style="cursor:pointer">
           <div class="insta-feed-header">
             <div class="insta-feed-avatar">🌸</div>
             <div class="insta-feed-meta">
@@ -2549,13 +2800,13 @@
           </div>
           <p class="insta-feed-desc">딸아이가 베란다에 장미꽃 화분을 놓아두었네요. 매일 아침 꽃을 보며 마음을 달랩니다. 🌹</p>
           <div class="insta-feed-actions">
-            <button class="insta-feed-btn" onclick="toast('좋아요를 보냈어요 ❤️')">❤️ 9</button>
-            <button class="insta-feed-btn" onclick="toast('댓글 달기 기능을 준비 중이에요 💬')">💬 2</button>
+            <button class="insta-feed-btn reaction-summary-btn" id="react-post-2" onclick="event.stopPropagation();openComments('post-2')">❤️ 9</button>
+            <button class="insta-feed-btn comment-count-btn" onclick="event.stopPropagation();openComments('post-2')">💬 2</button>
           </div>
         </div>
 
         <!-- 피드 3 -->
-        <div class="insta-feed-card">
+        <div class="insta-feed-card" id="post-3" onclick="openComments('post-3')" style="cursor:pointer">
           <div class="insta-feed-header">
             <div class="insta-feed-avatar">🏡</div>
             <div class="insta-feed-meta">
@@ -2572,15 +2823,11 @@
           </div>
           <p class="insta-feed-desc">시골에 살던 그리운 기와집 오두막집을 회상하며 그려보았습니다. 아련하네요. 🏡</p>
           <div class="insta-feed-actions">
-            <button class="insta-feed-btn active" onclick="toast('좋아요를 보냈어요 ❤️')">❤️ 21</button>
-            <button class="insta-feed-btn" onclick="toast('댓글 달기 기능을 준비 중이에요 💬')">💬 5</button>
+            <button class="insta-feed-btn reaction-summary-btn" id="react-post-3" onclick="event.stopPropagation();openComments('post-3')">❤️ 21</button>
+            <button class="insta-feed-btn comment-count-btn" onclick="event.stopPropagation();openComments('post-3')">💬 5</button>
           </div>
         </div>
 
-        <!-- FAB: 그림 그리기 -->
-        <button class="fab-draw-btn" onclick="enterDrawMode()" aria-label="그림 그리기">
-          <span>➕</span>
-        </button>
       </section>
 
       <!-- ② 그리기 화면 -->
@@ -2650,7 +2897,7 @@
             <span class="tool-icon">🖌️</span><span>굵은펜</span>
           </button>
           <button class="tool eraser-btn" onclick="setTool('eraser',this)">
-            <span class="tool-icon">🧹</span><span>지우개</span>
+            <span class="tool-icon">🧽</span><span>지우개</span>
           </button>
           <button class="tool" onclick="undoDraw()">
             <span class="tool-icon">↩️</span><span>되돌리기</span>
@@ -2878,6 +3125,28 @@
       </section>
 
     </main>
+
+    <!-- FAB: 그림 그리기 (하루 탭에서만 표시) -->
+    <button class="fab-draw-btn" id="fabDrawBtn" onclick="enterDrawMode()" aria-label="그림 그리기">
+      <span class="fab-draw-icon">✏️</span>
+      <span class="fab-draw-label">그림 그리기</span>
+    </button>
+
+    <!-- 댓글 시트 -->
+    <div class="comment-dim" id="commentDim" onclick="closeComments()"></div>
+    <div class="comment-sheet" id="commentSheet">
+      <div class="comment-sheet-handle"></div>
+      <div class="comment-sheet-header">
+        <span class="comment-sheet-title">💬 댓글</span>
+        <button class="comment-sheet-close" onclick="closeComments()">✕</button>
+      </div>
+      <div class="reaction-row" id="reactionRow"></div>
+      <div class="comment-list" id="commentList"></div>
+      <div class="comment-input-row">
+        <input type="text" class="comment-input" id="commentInput" placeholder="따뜻한 댓글을 남겨요..." maxlength="80">
+        <button class="comment-send-btn" onclick="submitComment()">보내기</button>
+      </div>
+    </div>
 
     <!-- 바텀 네비 -->
     <nav>
@@ -3549,6 +3818,8 @@
       if (id === "mydiaries") loadProfile();
       if (id === "haru") refreshHaruPreview();
       if (id === "draw") { resizeCanvas(); setTimeout(resizeCanvas, 50); }
+      const fab = document.getElementById('fabDrawBtn');
+      if (fab) fab.style.display = id === 'haru' ? '' : 'none';
     }
 
     function enterPuzzleMode() { toast('퍼즐 게임을 준비 중이에요 🧩'); }
@@ -3574,6 +3845,158 @@
     }
 
     function enterDrawMode() { showScreen("draw", navBtns[1]); speak("그림을 그려볼까요?"); }
+
+    // ── 댓글 ──
+    const _defaultComments = {
+      'post-1': [
+        {author:'친구 김○○님', avatar:'🌸', text:'정말 귀엽게 그리셨어요! 강아지 눈빛이 살아있네요 🐾', time:'방금 전'},
+        {author:'이웃 최○○님', avatar:'🏡', text:'바둑이가 눈에 선합니다 😊', time:'10분 전'},
+        {author:'이웃 정○○님', avatar:'🌻', text:'우리 손자도 강아지 좋아하는데 ㅎㅎ', time:'30분 전'},
+        {author:'친구 이○○님', avatar:'🌺', text:'너무 잘 그리셨어요!', time:'1시간 전'},
+      ],
+      'post-2': [
+        {author:'이웃 박○○님', avatar:'🐶', text:'아름다운 장미네요 🌹 매일 보면 기분이 좋겠어요', time:'2시간 전'},
+        {author:'이웃 정○○님', avatar:'🌻', text:'저도 화분 키우고 싶어요', time:'3시간 전'},
+      ],
+      'post-3': [
+        {author:'친구 김○○님', avatar:'🌸', text:'저도 시골이 그립네요 🏡 정겹습니다', time:'어제'},
+        {author:'이웃 박○○님', avatar:'🐶', text:'참 정겨운 그림이에요', time:'어제'},
+        {author:'이웃 최○○님', avatar:'🏡', text:'실력이 대단하세요!', time:'어제'},
+        {author:'친구 이○○님', avatar:'🌺', text:'저도 언젠가 그려보고 싶어요', time:'어제'},
+        {author:'이웃 정○○님', avatar:'🌻', text:'아련하고 따뜻한 그림이에요 ☺️', time:'2일 전'},
+      ],
+    };
+    let _currentPostId = null;
+
+    function _getComments(postId) {
+      const s = localStorage.getItem('haruComments_' + postId);
+      return s ? JSON.parse(s) : (_defaultComments[postId] || []);
+    }
+    function _saveComments(postId, list) {
+      localStorage.setItem('haruComments_' + postId, JSON.stringify(list));
+    }
+
+    function openComments(postId) {
+      _currentPostId = postId;
+      _renderReactions();
+      _renderComments();
+      document.getElementById('commentDim').classList.add('open');
+      document.getElementById('commentSheet').classList.add('open');
+      document.getElementById('commentInput').value = '';
+    }
+    function closeComments() {
+      document.getElementById('commentDim').classList.remove('open');
+      document.getElementById('commentSheet').classList.remove('open');
+      _currentPostId = null;
+    }
+
+    function _renderComments() {
+      const list = _getComments(_currentPostId);
+      const el = document.getElementById('commentList');
+      if (!list.length) {
+        el.innerHTML = '<div class="comment-empty">아직 댓글이 없어요. 첫 댓글을 남겨보세요 😊</div>';
+        return;
+      }
+      el.innerHTML = list.map(c => `
+        <div class="comment-item">
+          <div class="comment-avatar">${c.avatar}</div>
+          <div class="comment-body">
+            <div class="comment-meta">
+              <span class="comment-author">${c.author}</span>
+              <span class="comment-time">${c.time}</span>
+            </div>
+            <div class="comment-text">${c.text}</div>
+          </div>
+        </div>`).join('');
+      el.scrollTop = el.scrollHeight;
+    }
+
+    function submitComment() {
+      const input = document.getElementById('commentInput');
+      const text = input.value.trim();
+      if (!text || !_currentPostId) return;
+      const profile = JSON.parse(localStorage.getItem('haruProfile') || '{}');
+      const list = _getComments(_currentPostId);
+      list.push({author: profile.name || '나', avatar: '😊', text, time: '방금 전'});
+      _saveComments(_currentPostId, list);
+      _renderComments();
+      const btn = document.querySelector('#' + _currentPostId + ' .comment-count-btn');
+      if (btn) btn.textContent = '💬 ' + list.length;
+      input.value = '';
+    }
+
+    // ── 감정 표현 ──
+    const _REACTIONS = [
+      { emoji: '❤️', label: '좋아요' },
+      { emoji: '👍', label: '멋져요' },
+      { emoji: '😢', label: '슬퍼요' },
+      { emoji: '😄', label: '웃겨요' },
+      { emoji: '🥰', label: '따뜻해요' },
+    ];
+    const _DEFAULT_REACT = {
+      'post-1': { '❤️': 8, '👍': 2, '😢': 0, '😄': 1, '🥰': 1 },
+      'post-2': { '❤️': 6, '👍': 2, '😢': 0, '😄': 0, '🥰': 1 },
+      'post-3': { '❤️': 11, '👍': 4, '😢': 1, '😄': 2, '🥰': 3 },
+    };
+
+    function _getReactState(postId) {
+      const s = localStorage.getItem('haruReact_' + postId);
+      if (s) return JSON.parse(s);
+      return { counts: { ..._DEFAULT_REACT[postId] }, mine: null };
+    }
+    function _saveReactState(postId, state) {
+      localStorage.setItem('haruReact_' + postId, JSON.stringify(state));
+    }
+
+    function _renderReactions() {
+      const state = _getReactState(_currentPostId);
+      document.getElementById('reactionRow').innerHTML = _REACTIONS.map(r => `
+        <button class="reaction-btn${state.mine === r.emoji ? ' selected' : ''}" onclick="toggleReaction('${r.emoji}')">
+          <span class="reaction-emoji">${r.emoji}</span>
+          <span class="reaction-label">${r.label}</span>
+          <span class="reaction-count">${state.counts[r.emoji] || 0}</span>
+        </button>`).join('');
+    }
+
+    function toggleReaction(emoji) {
+      const state = _getReactState(_currentPostId);
+      if (state.mine === emoji) {
+        state.counts[emoji] = Math.max(0, (state.counts[emoji] || 0) - 1);
+        state.mine = null;
+      } else {
+        if (state.mine) state.counts[state.mine] = Math.max(0, (state.counts[state.mine] || 0) - 1);
+        state.counts[emoji] = (state.counts[emoji] || 0) + 1;
+        state.mine = emoji;
+        const r = _REACTIONS.find(r => r.emoji === emoji);
+        toast(r.label + ' ' + emoji);
+      }
+      _saveReactState(_currentPostId, state);
+      _renderReactions();
+      const total = Object.values(state.counts).reduce((a, b) => a + b, 0);
+      const top = _REACTIONS.find(r => (state.counts[r.emoji] || 0) > 0);
+      const btn = document.getElementById('react-' + _currentPostId);
+      if (btn) {
+        btn.textContent = (top ? top.emoji : '❤️') + ' ' + total;
+        btn.classList.toggle('active', !!state.mine);
+      }
+      // 선택된 버튼 팝 애니메이션
+      const selected = document.querySelector('.reaction-btn.selected');
+      if (selected) { selected.classList.remove('pop'); void selected.offsetWidth; selected.classList.add('pop'); }
+    }
+
+    function _initReactions() {
+      ['post-1', 'post-2', 'post-3'].forEach(id => {
+        const state = _getReactState(id);
+        const total = Object.values(state.counts).reduce((a, b) => a + b, 0);
+        const top = _REACTIONS.find(r => (state.counts[r.emoji] || 0) > 0);
+        const btn = document.getElementById('react-' + id);
+        if (btn) {
+          btn.textContent = (top ? top.emoji : '❤️') + ' ' + total;
+          btn.classList.toggle('active', !!state.mine);
+        }
+      });
+    }
+
     function goToDiary() {
       const preview = document.getElementById("diaryPreview");
       preview.innerHTML = `<img src="${canvas.toDataURL("image/png")}" alt="오늘의 그림"/>`;
@@ -3601,17 +4024,23 @@
       localStorage.setItem('haruChatHistory', JSON.stringify(all));
     }
 
-    function startChatbotOnSavedDiary(diaryText, diaryId) {
+    function startChatbotOnSavedDiary(diaryText, diaryId, imageDataUrl) {
       currentChatDiaryId = diaryId || null;
       const box = document.getElementById("chatbotMessages");
       if (!box) return;
       box.innerHTML = '';
+      // 그림 먼저 표시
+      if (imageDataUrl) {
+        box.innerHTML += `<div class="msg ai chat-diary-img-wrap">
+          <span class="chat-diary-img-label">🎨 오늘 그리신 그림이에요</span>
+          <img class="chat-diary-img" src="${imageDataUrl}" alt="오늘의 그림">
+        </div>`;
+      }
       let greeting = "오늘 일기를 무사히 저장하셨네요! 그림 그리시느라 수고 많으셨어요. 🌼";
       if (diaryText.trim()) { const s = diaryText.trim(); greeting = `방금 일기에 <b>"${s.slice(0, 35)}${s.length > 35 ? '...' : ''}"</b>라고 적어주셨네요! 소중한 하루를 기록해주셔서 감사해요. 🌷`; }
-      box.innerHTML = `<div class="msg ai">${greeting}</div>`;
+      box.innerHTML += `<div class="msg ai">${greeting}</div>`;
       box.scrollTop = box.scrollHeight;
       speak(greeting.replace(/<\/?[^>]+(>|$)/g, ""));
-      // 첫 인사 저장
       _saveChatMsg(currentChatDiaryId, 'ai', greeting.replace(/<\/?[^>]+(>|$)/g, ""));
     }
 
@@ -3657,7 +4086,7 @@
         items.unshift(item); localStorage.setItem('haruDiaries2', JSON.stringify(items.slice(0, 50)));
         toast('그림일기를 저장했어요 💾'); speak('그림일기를 저장했어요. 오늘도 수고하셨어요!');
         await loadMyDiaries();
-        startChatbotOnSavedDiary(document.getElementById('diaryText').value, savedDiary?.id);
+        startChatbotOnSavedDiary(document.getElementById('diaryText').value, savedDiary?.id, dataUrl);
         strokes = []; currentOutlineSVG = null;
         const w = canvas.width / devicePixelRatio, h = canvas.height / devicePixelRatio;
         ctx.clearRect(0, 0, w, h);
@@ -3843,6 +4272,8 @@
     // ── 초기화 ──
     navBtns = document.querySelectorAll("nav button");
     renderFavorites();
+    document.getElementById('commentInput').addEventListener('keydown', e => { if (e.key === 'Enter') submitComment(); });
+    _initReactions();
 
     // ── 프로필 관리 ──
     function loadProfile() {
