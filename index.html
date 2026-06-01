@@ -866,9 +866,12 @@
     .sheet-grid {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
+      align-content: start;
       gap: 10px;
       padding: 0 14px 24px;
       overflow-y: auto;
+      flex: 1;
+      min-height: 0;
     }
 
     /* 윤곽선 카드 */
@@ -908,6 +911,7 @@
       background: none;
       border: none;
       font-family: inherit;
+      cursor: pointer;
     }
 
     .outline-card.faved .star {
@@ -3194,7 +3198,7 @@
         <span class="sheet-title">윤곽선 전체보기</span>
         <button class="sheet-close" onclick="closeOutlineSheet()">✕</button>
       </div>
-      <input id="outlineSearch" class="sheet-search" placeholder="🔍 윤곽선 이름 검색..." oninput="renderOutlines()">
+      <input id="outlineSearch" class="sheet-search" placeholder="🔍 검색하거나 🎤 음성으로 말해보세요 (꽃, 강아지...)" oninput="renderOutlines()">
       <div id="categoryRow" class="sheet-cats"></div>
       <div id="outlineGrid" class="sheet-grid"></div>
     </div>
@@ -3272,57 +3276,20 @@
     }
     initSupabase()
 
-    // ── 윤곽선 데이터 ──
-    const outlines = [
-      ["꽃", "자연", "M16,8 Q16,4 12,4 Q8,4 8,8 Q4,8 4,12 Q4,16 8,16 Q8,20 12,20 Q16,20 16,16 Q20,16 20,12 Q20,8 16,8 Z M12,22 L12,30"],
-      ["꽃 2", "자연", "M12,5 C10,5 8.5,6.5 8,9 C7.5,11.5 9,14 12,15.5 C15,14 16.5,11.5 16,9 C15.5,6.5 14,5 12,5 Z M12,15 L12,24"],
-      ["꽃 3", "자연", "M12,9 A3,3 0 1,1 12,15 A3,3 0 1,1 12,9 Z M12,9 C12,7 11.5,4 12,3 C12.5,4 12,7 12,9 Z M12,15 C12,17 11.5,20 12,21 C12.5,20 12,17 12,15 Z M9,12 C7,12 4,11.5 3,12 C4,12.5 7,12 9,12 Z M15,12 C17,12 20,11.5 21,12 C20,12.5 17,12 15,12 Z M10,10 C8,8 6,6 5,5 M14,14 C16,16 18,18 19,19 M14,10 C16,8 18,6 19,5 M10,14 C8,16 6,18 5,19 Z M12,21 L12,29"],
-      ["나무", "자연", "M12,4 L8,10 L10,10 L6,16 L9,16 L5,22 L19,22 L15,16 L18,16 L14,10 L16,10 Z M11,22 L11,30 L13,30 L13,22"],
-      ["나무 2", "자연", "M12,4 C9,4 6.5,5.5 5.5,8 C4.5,10.5 5,13.5 7,15.5 C8,16.5 7.5,18.5 7,20 C8,22 10,21 12,20 C14,21 16,22 17,20 C16.5,18.5 16,16.5 17,15.5 C19,13.5 19.5,10.5 18.5,8 C17.5,5.5 15,4 12,4 Z M11,20 L11,28 L13,28 L13,20"],
-      ["태양", "자연", "M12,8 Q16,8 16,12 Q16,16 12,16 Q8,16 8,12 Q8,8 12,8 M12,2 L12,5 M12,19 L12,22 M2,12 L5,12 M19,12 L22,12 M4.9,4.9 L7,7 M17,17 L19.1,19.1 M19.1,4.9 L17,7 M7,17 L4.9,19.1"],
-      ["구름", "자연", "M6,14 Q4,14 4,12 Q4,10 6,10 Q6,8 8,8 Q9,6 11,7 Q12,5 14,6 Q17,6 17,9 Q19,9 19,11 Q19,14 16,14 Z"],
-      ["산", "자연", "M2,22 L12,4 L22,22 Z M8,22 L12,12 L16,22"],
-      ["별", "자연", "M12,2 L14.4,9.2 L22,9.2 L16,13.6 L18.4,20.8 L12,16.4 L5.6,20.8 L8,13.6 L2,9.2 L9.6,9.2 Z"],
-      ["달", "자연", "M12,4 Q18,6 18,12 Q18,18 12,20 Q8,19 6,16 Q10,16 12,12 Q14,8 12,4 Z"],
-      ["비", "자연", "M5,10 Q3,10 3,12 Q3,15 6,15 L18,15 Q21,15 21,12 Q21,9 18,9 Q17,6 14,6 Q12,4 10,5 Q7,5 5,10 M8,18 L7,22 M12,18 L11,22 M16,18 L15,22"],
-      ["눈사람", "자연", "M12,14 Q16,14 16,18 Q16,22 12,22 Q8,22 8,18 Q8,14 12,14 M12,6 Q14,6 14,8 Q14,10 12,10 Q10,10 10,8 Q10,6 12,6 M10,8 Q10,7 11,7 M14,8 Q14,7 13,7 M10,9 Q11,10 13,9 M10,17 Q11,18 14,17 M8,14 L6,12 M16,14 L18,12"],
-      ["무지개", "자연", "M4,16 Q4,8 12,8 Q20,8 20,16 M5,16 Q5,10 12,10 Q19,10 19,16 M6,16 Q6,11 12,11 Q18,11 18,16 M7,16 Q7,12 12,12 Q17,12 17,16 M8,16 Q8,13 12,13 Q16,13 16,16"],
-      ["바다", "자연", "M2,14 Q5,11 8,14 Q11,17 14,14 Q17,11 22,14 M2,10 Q5,7 8,10 Q11,13 14,10 Q17,7 22,10 M2,18 Q5,15 8,18 Q11,21 14,18 Q17,15 22,18"],
-      ["강아지", "동물", "M5,9 C5,7 6.5,6 8,6 C9.5,6 10,7 10,9 C10,10.5 8,11 8,12 M14,9 C14,7 14.5,6 16,6 C17.5,6 19,7 19,9 C19,10.5 16,11 16,12 M7,11 C5,13 5,16 8,18 C10,19 14,19 16,18 C19,16 19,13 17,11 M9,13 C9,14 10,15 12,15 C14,15 15,14 15,13 M10.5,12 A0.8,0.8 0 1 1 10.49,12 M13.5,12 A0.8,0.8 0 1 1 13.49,12 M11,16 C11.5,17 12.5,17 13,16"],
-      ["강아지 2", "동물", "M3,16 C3.5,15.5 4,15 5.5,15 C7,15 7.5,15.5 8,16 C8.5,16.5 8.5,17.5 8,18 C7.5,18.5 6,19 5,18.5 C4.5,18 3.5,17.5 3,16 Z M8,16 C9,15 10,13 12,13 C14,13 16,14.5 17,16 M17,16 C18,15.5 19.5,15.5 20,16.5 C20.5,17.5 20,18.5 19,19"],
-      ["고양이", "동물", "M6,8 L4.5,5 L8.5,7 C9.5,6.5 10.5,6 12,6 C13.5,6 14.5,6.5 15.5,7 L19.5,5 L18,8 C19,9.5 19.5,11.5 19.5,13.5 C19.5,16.5 17.5,18.5 15,19 C14,19.2 13,19.5 12,19.5 C11,19.5 10,19.2 9,19 C6.5,18.5 4.5,16.5 4.5,13.5 C4.5,11.5 5,9.5 6,8 Z M8.5,12 A0.7,0.7 0 1 1 8.49,12 M15.5,12 A0.7,0.7 0 1 1 15.49,12 M11,14 L13,14 L12,15 Z M9,16 Q12,18.5 15,16"],
-      ["새", "동물", "M4,10 Q6,8 8,9 Q10,6 14,8 Q18,8 20,12 Q16,10 14,12 Q12,16 8,15 Q6,18 4,16 Q4,13 4,10 M14,12 L20,8"],
-      ["물고기", "동물", "M4,12 L14,8 Q18,10 18,12 Q18,14 14,16 L4,12 M4,12 L2,9 L2,15 L4,12 M14,11 Q15,11 15,12 Q15,13 14,13"],
-      ["나비", "동물", "M12,12 Q8,8 4,10 Q2,12 4,15 Q6,18 10,14 Q12,12 12,12 Q16,8 20,10 Q22,12 20,15 Q18,18 14,14 Q12,12 12,12 M12,8 L12,18"],
-      ["토끼", "동물", "M9,4 Q9,2 10,2 Q11,2 11,4 L11,8 M15,4 Q15,2 14,2 Q13,2 13,4 L13,8 M8,8 Q8,18 12,18 Q16,18 16,8 Q14,7 10,7 Q8,7 8,8 M10,13 L14,13 M11,15 Q12,16 13,15"],
-      ["집", "생활", "M2,12 L12,4 L22,12 M4,12 L4,22 L20,22 L20,12 M9,22 L9,16 Q9,14 12,14 Q15,14 15,16 L15,22 M7,12 Q7,10 9,10 Q11,10 11,12"],
-      ["집 2", "생활", "M12,3 L4,9 L20,9 Z M5,9 L5,22 L19,22 L19,9 M8,12 L11,12 L11,15 L8,15 Z M13,12 L16,12 L16,15 L13,15 Z M10,17 L10,22 L14,22 L14,17 Z"],
-      ["자동차", "생활", "M3,16 L5,10 Q6,8 8,8 L16,8 Q18,8 19,10 L21,16 L21,18 L3,18 L3,16 M7,18 Q7,20 9,20 Q11,20 11,18 M13,18 Q13,20 15,20 Q17,20 17,18 M5,14 L19,14"],
-      ["자전거", "생활", "M6,18 Q9,18 9,15 Q9,12 6,12 Q3,12 3,15 Q3,18 6,18 M18,18 Q21,18 21,15 Q21,12 18,12 Q15,12 15,15 Q15,18 18,18 M6,15 L10,9 L14,9 L18,15 M10,9 L12,6 M12,9 L15,15"],
-      ["버스", "생활", "M3,8 Q3,6 5,6 L19,6 Q21,6 21,8 L21,18 Q21,20 19,20 L5,20 Q3,20 3,18 L3,8 M3,14 L21,14 M7,20 Q7,22 9,22 Q11,22 11,20 M13,20 Q13,22 15,22 Q17,22 17,20 M6,10 L10,10 M14,10 L18,10"],
-      ["안경", "생활", "M2,12 Q2,9 5,9 Q8,9 8,12 Q8,15 5,15 Q2,15 2,12 M16,12 Q16,9 19,9 Q22,9 22,12 Q22,15 19,15 Q16,15 16,12 M8,12 L10,12 Q11,11 12,11 Q13,11 14,12 L16,12"],
-      ["우산", "생활", "M12,4 Q6,4 4,10 L20,10 Q18,4 12,4 M12,4 L12,20 Q12,22 10,22 Q8,22 8,20"],
-      ["전화", "생활", "M6,4 Q5,4 5,5 L5,19 Q5,20 6,20 L18,20 Q19,20 19,19 L19,5 Q19,4 18,4 L6,4 M9,7 L15,7 M12,17 Q13,17 13,18 Q13,19 12,19 Q11,19 11,18 Q11,17 12,17"],
-      ["병원", "생활", "M4,6 Q4,4 6,4 L18,4 Q20,4 20,6 L20,20 Q20,22 18,22 L6,22 Q4,22 4,20 L4,6 M9,13 L15,13 M12,10 L12,16"],
-      ["시장", "생활", "M3,8 L21,8 M5,8 L7,20 L17,20 L19,8 M3,5 Q3,3 12,3 Q21,3 21,5 L21,8 L3,8 L3,5 M9,12 L9,16 M15,12 L15,16 M12,11 L12,17"],
-      ["공원", "생활", "M2,20 L22,20 M6,20 Q6,14 9,12 Q6,8 6,4 Q8,6 10,8 Q12,6 12,4 Q14,8 12,12 Q15,14 14,20 M18,20 L18,16 Q20,14 18,12 Q16,14 18,16"],
-      ["할머니", "사람", "M12,4 Q15,4 15,7 Q15,10 12,10 Q9,10 9,7 Q9,4 12,4 M8,22 Q8,16 12,14 Q16,16 16,22 M9,14 Q7,15 6,18 M15,14 Q17,15 18,18"],
-      ["할아버지", "사람", "M12,4 Q15,4 15,7 Q15,10 12,10 Q9,10 9,7 Q9,4 12,4 M8,22 Q8,16 12,14 Q16,16 16,22 M12,10 L12,14 M8,18 Q10,17 12,18 Q14,17 16,18"],
-      ["손자", "사람", "M12,3 Q14.5,3 14.5,5.5 Q14.5,8 12,8 Q9.5,8 9.5,5.5 Q9.5,3 12,3 M10,22 L10,14 Q10,12 12,12 Q14,12 14,14 L14,22"],
-      ["엄마", "사람", "M12,4 Q15,4 15,7 Q15,10 12,10 Q9,10 9,7 Q9,4 12,4 M9,22 Q9,16 12,14 Q15,16 15,22 M6,18 Q7,14 9,14 M18,18 Q17,14 15,14"],
-      ["아빠", "사람", "M12,4 Q15,4 15,7 Q15,10 12,10 Q9,10 9,7 Q9,4 12,4 M8,22 Q8,16 12,14 Q16,16 16,22 M5,16 Q6,12 8,12 M19,16 Q18,12 16,12"],
-      ["친구", "사람", "M8,4 Q10,4 10,6 Q10,9 8,9 Q6,9 6,6 Q6,4 8,4 M16,4 Q18,4 18,6 Q18,9 16,9 Q14,9 14,6 Q14,4 16,4 M5,20 Q5,14 8,12 Q11,14 11,20 M13,20 Q13,14 16,12 Q19,14 19,20"],
-      ["하트", "감정", "M12,20 Q6,16 4,12 Q2,8 6,6 Q9,4 12,8 Q15,4 18,6 Q22,8 20,12 Q18,16 12,20 Z"],
-      ["웃음", "감정", "M12,4 Q18,4 18,12 Q18,18 12,18 Q6,18 6,12 Q6,4 12,4 M9,10 Q9,11 10,11 Q11,11 11,10 M13,10 Q13,11 14,11 Q15,11 15,10 M8,14 Q10,17 14,14"],
-      ["눈물", "감정", "M12,4 Q18,4 18,12 Q18,18 12,18 Q6,18 6,12 Q6,4 12,4 M9,10 Q9,8 10,8 M14,10 Q14,8 15,8 M8,14 Q10,12 16,14 M15,18 Q16,22 15,22 Q14,22 14,20"],
-      ["선물", "감정", "M3,10 L3,20 Q3,22 5,22 L19,22 Q21,22 21,20 L21,10 M2,7 Q2,5 4,5 L20,5 Q22,5 22,7 L22,10 L2,10 L2,7 M12,5 L12,22 M12,5 Q10,2 8,3 Q6,5 9,6 Q11,7 12,5 M12,5 Q14,2 16,3 Q18,5 15,6 Q13,7 12,5"],
-      ["생일", "감정", "M6,10 L6,20 Q6,22 8,22 L16,22 Q18,22 18,20 L18,10 M4,8 Q4,6 6,6 L18,6 Q20,6 20,8 L20,10 L4,10 L4,8 M12,6 L12,4 Q12,2 10,2 Q10,4 12,4 M8,4 Q8,2 10,2 M14,4 Q14,2 12,2"],
-      ["편지", "감정", "M3,6 Q3,4 5,4 L19,4 Q21,4 21,6 L21,18 Q21,20 19,20 L5,20 Q3,20 3,18 L3,6 M3,6 L12,13 L21,6"],
-      ["사과", "음식", "M10,4 Q10,2 12,2 Q12,4 12,4 M8,6 Q4,6 4,12 Q4,18 8,20 Q10,22 12,22 Q14,22 16,20 Q20,18 20,12 Q20,6 16,6 Q14,4 12,6 Q10,4 8,6"],
-      ["떡", "음식", "M4,10 Q4,8 6,8 L18,8 Q20,8 20,10 L20,16 Q20,18 18,18 L6,18 Q4,18 4,16 L4,10 M4,13 L20,13 M8,8 L8,4 M12,8 L12,4 M16,8 L16,4"],
-      ["밥상", "음식", "M2,18 Q2,16 4,16 L20,16 Q22,16 22,18 L22,20 L2,20 L2,18 M6,16 Q6,10 12,10 Q18,10 18,16 M12,10 L12,8 M8,8 L16,8"],
-      ["커피", "음식", "M6,8 L6,18 Q6,20 9,20 L15,20 Q18,20 18,18 L18,8 L6,8 M18,12 Q20,12 20,14 Q20,16 18,16 M4,6 L20,6 M10,4 Q10,2 11,2 M14,4 Q14,2 13,2"],
-    ];
+    // ── 윤곽선 데이터 (API에서 로드) ──
+    let outlines = [];
+    async function loadOutlines() {
+      try {
+        const res = await fetch('http://localhost:8000/api/outlines');
+        const data = await res.json();
+        outlines = data.outlines.map(o => [o.name, o.category, o.path]);
+        renderFavorites();
+        renderOutlines();
+      } catch (e) {
+        console.error('윤곽선 로드 실패:', e);
+      }
+    }
+    loadOutlines();
 
     const categories = ["즐겨찾기", "자연", "동물", "생활", "사람", "음식", "감정"];
     let favorites = JSON.parse(localStorage.getItem("haruFavorites2") || '["꽃","강아지","집","하트","태양","나무"]');
@@ -3744,7 +3711,16 @@
       if (!SR) { toast("음성 인식이 지원되지 않는 브라우저예요"); return; }
       const rec = new SR(); rec.lang = "ko-KR";
       rec.onstart = () => { btn.classList.add("recording"); toast("말씀해주세요: 꽃, 강아지, 집..."); };
-      rec.onresult = e => { btn.classList.remove("recording"); const said = e.results[0][0].transcript; const found = outlines.find(([name]) => said.includes(name)); if (found) stamp(found[0]); else { toast(`"${said}" 에 맞는 윤곽선을 찾지 못했어요`); speak("맞는 윤곽선을 찾지 못했어요. 다시 말씀해주세요."); } };
+      rec.onresult = e => {
+        btn.classList.remove("recording");
+        const said = e.results[0][0].transcript.trim().replace(/[.,!?。、·。]/g, '').trim();
+        toast(`"${said}" 검색 중... 🔍`);
+        // 검색창에 인식된 단어 설정 후 시트 열기 (기존 + Quick Draw 결과 동시 표시)
+        const searchEl = document.getElementById("outlineSearch");
+        if (searchEl) searchEl.value = said;
+        openOutlineSheet();
+        speak(`${said} 윤곽선을 찾아볼게요`);
+      };
       rec.onerror = () => { btn.classList.remove("recording"); toast("음성 인식 오류가 발생했어요"); };
       rec.onend = () => { btn.classList.remove("recording"); };
       rec.start();
@@ -3786,16 +3762,114 @@
       return `<svg class="${className}" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="${pathData}" stroke="#8B735B" stroke-width="1.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
     }
 
+    // ── Quick Draw 연동 ──
+    const _QD_API = 'http://localhost:8000/api/quickdraw';
+    let _qdDrawings = [];
+    let _qdWord = '';
+    let _qdTimer = null;
+
+    function _normalizeQ(raw) {
+      return raw.replace(/[.,!?。、·]/g, '').trim();
+    }
+    function _extractQDKeyword(q) {
+      const found = outlines.find(([name]) => q.includes(name));
+      return found ? found[0] : q;
+    }
+
     function renderOutlines() {
       const catRow = document.getElementById("categoryRow");
       if (catRow) catRow.innerHTML = categories.map(c => `<button class="chip cat ${c === activeCategory ? 'active' : ''}" onclick="activeCategory='${c}';renderOutlines()">${c}</button>`).join("");
-      const q = (document.getElementById("outlineSearch")?.value || "").trim();
-      const list = outlines.filter(([name, cat]) => {
-        const catOk = activeCategory === "즐겨찾기" ? favorites.includes(name) : cat === activeCategory;
-        return catOk && (!q || name.includes(q) || cat.includes(q));
-      });
       const gridEl = document.getElementById("outlineGrid");
-      if (gridEl) gridEl.innerHTML = list.map(([name, cat, path]) => `<button class="outline-card ${favorites.includes(name) ? 'faved' : ''}" onclick="stamp('${name}')"><button class="star" onclick="toggleFavorite('${name}',event)">${favorites.includes(name) ? '★' : '☆'}</button>${makeSVG(path)}<div class="outline-name">${name}</div><div class="outline-cat">${cat}</div></button>`).join("");
+      if (!gridEl) return;
+
+      const q = _normalizeQ(document.getElementById("outlineSearch")?.value || "");
+      const list = outlines.filter(([name, cat]) => {
+        if (q) return name.includes(q) || q.includes(name) || cat.includes(q);
+        const catOk = activeCategory === "즐겨찾기" ? favorites.includes(name) : cat === activeCategory;
+        return catOk;
+      });
+
+      gridEl.innerHTML = list.map(([name, cat, path]) =>
+        `<button class="outline-card ${favorites.includes(name) ? 'faved' : ''}" onclick="stamp('${name}')"><span class="star" onclick="toggleFavorite('${name}',event)">${favorites.includes(name) ? '★' : '☆'}</span>${makeSVG(path)}<div class="outline-name">${name}</div><div class="outline-cat">${cat}</div></button>`
+      ).join("");
+
+      // 검색어가 있으면 Quick Draw 결과도 함께 표시
+      if (q) {
+        const qdKeyword = _extractQDKeyword(q);
+        gridEl.innerHTML += `<div id="qdSection" style="grid-column:1/-1;margin-top:10px;border-top:1.5px dashed var(--border);padding-top:10px;">
+          <div style="font-size:13px;font-weight:800;color:var(--purple2);margin-bottom:8px;">⚡ Quick Draw 결과</div>
+          <div id="qdInlineGrid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">
+            <div style="grid-column:1/-1;text-align:center;padding:14px;color:var(--muted);font-size:13px;">불러오는 중...</div>
+          </div>
+        </div>`;
+        clearTimeout(_qdTimer);
+        _qdTimer = setTimeout(() => _fetchQDInline(qdKeyword), 350);
+      }
+    }
+
+    async function _fetchQDInline(q) {
+      const grid = document.getElementById("qdInlineGrid");
+      if (!grid) return;
+      try {
+        const res = await fetch(`${_QD_API}?ko=${encodeURIComponent(q)}&n=6`);
+        const data = await res.json();
+        if (!res.ok || !data.drawings?.length) {
+          grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:14px;color:var(--muted);font-size:13px;">"${q}" Quick Draw 결과 없음</div>`;
+          return;
+        }
+        _qdDrawings = data.drawings;
+        _qdWord = q;
+        grid.innerHTML = _qdDrawings.map((drawing, i) => {
+          const pathData = _qdStrokesToPath(drawing);
+          return `<button class="outline-card" onclick="stampQuickDraw(${i})">
+            ${makeSVG(pathData)}
+            <div class="outline-name">${escapeHtml(q)} ${i + 1}</div>
+          </button>`;
+        }).join('');
+      } catch {
+        if (grid) grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:14px;color:var(--muted);font-size:13px;">서버 연결 필요</div>`;
+      }
+    }
+
+    function _drawQDOnCanvas(cvs, strokes) {
+      const ctx = cvs.getContext('2d');
+      const s = cvs.width / 255;
+      ctx.clearRect(0, 0, cvs.width, cvs.height);
+      ctx.strokeStyle = '#5E3F8C'; ctx.lineWidth = 1.8;
+      ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+      for (const [xs, ys] of strokes) {
+        if (!xs.length) continue;
+        ctx.beginPath(); ctx.moveTo(xs[0] * s, ys[0] * s);
+        for (let i = 1; i < xs.length; i++) ctx.lineTo(xs[i] * s, ys[i] * s);
+        ctx.stroke();
+      }
+    }
+
+    function _qdStrokesToPath(strokes) {
+      const s = 24 / 255;
+      return strokes.map(([xs, ys]) => {
+        let d = `M${(xs[0]*s).toFixed(2)},${(ys[0]*s).toFixed(2)}`;
+        for (let i = 1; i < xs.length; i++) d += `L${(xs[i]*s).toFixed(2)},${(ys[i]*s).toFixed(2)}`;
+        return d;
+      }).join(' ');
+    }
+
+    function stampQuickDraw(index) {
+      const drawing = _qdDrawings[index];
+      if (!drawing) return;
+      const pathData = _qdStrokesToPath(drawing);
+      const name = `${_qdWord} (Quick Draw)`;
+      const rect = canvas.getBoundingClientRect();
+      const w = rect.width, h = rect.height;
+      pOv_ = { name, pathData, cx: w / 2, cy: h / 2, scale: Math.min(w, h) * 0.55 / 24 };
+      _initPOvCanvas(w, h); _setupPOvEvents(); drawPOv();
+      document.getElementById('pOvBtns').style.display = 'flex';
+      canvas.style.pointerEvents = 'none';
+      closeOutlineSheet();
+      showScreen("draw", navBtns[1]);
+      hint.style.display = "none";
+      toast(`${name} - 모서리 끌어 크기 조절 ✨`);
+      speak(`Quick Draw ${_qdWord} 윤곽선을 배치해보세요`);
     }
 
     // ★ Doc2: 바텀시트 열기/닫기
@@ -4007,29 +4081,28 @@
     function updateCharCount() { document.getElementById("charCount").textContent = document.getElementById("diaryText").value.length; }
 
     // ── 챗봇 대화 ──
-    const aiResponses = ["정말요? 더 자세히 들려주세요 😊", "따뜻한 하루를 보내셨군요 🌷", "그 이야기를 들으니 저도 기분이 좋아지네요 🌷", "소중한 추억이네요. 예전에도 그런 일이 있으셨나요?", "오늘도 멋진 하루를 보내셨군요. 내일은 어떤 그림을 그리고 싶으세요?", "그 마음이 그림에서도 느껴져요. 참 따뜻하세요 ❤️"];
-    let aiIdx = 0;
+    const _CHAT_API = 'http://localhost:8000/api/chat';
+    let _chatDiaryText = '';
+    let _sessionHistory = []; // 세션 내 대화 히스토리 (메모리)
 
-    // ── 채팅 내역 저장 헬퍼 ──
     function _saveChatMsg(diaryId, role, text) {
       if (!diaryId) return;
       const all = JSON.parse(localStorage.getItem('haruChatHistory') || '{}');
       const key = String(diaryId);
       if (!all[key]) all[key] = [];
-      const now = new Date();
-      const time = now.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
-      all[key].push({ role, text, time });
-      // 대화 최대 50개 유지
+      const time = new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
+      all[key].push({ role, content: text, time });
       if (all[key].length > 50) all[key] = all[key].slice(-50);
       localStorage.setItem('haruChatHistory', JSON.stringify(all));
     }
 
     function startChatbotOnSavedDiary(diaryText, diaryId, imageDataUrl) {
       currentChatDiaryId = diaryId || null;
+      _chatDiaryText = diaryText || '';
+      _sessionHistory = [];
       const box = document.getElementById("chatbotMessages");
       if (!box) return;
       box.innerHTML = '';
-      // 그림 먼저 표시
       if (imageDataUrl) {
         box.innerHTML += `<div class="msg ai chat-diary-img-wrap">
           <span class="chat-diary-img-label">🎨 오늘 그리신 그림이에요</span>
@@ -4040,25 +4113,56 @@
       if (diaryText.trim()) { const s = diaryText.trim(); greeting = `방금 일기에 <b>"${s.slice(0, 35)}${s.length > 35 ? '...' : ''}"</b>라고 적어주셨네요! 소중한 하루를 기록해주셔서 감사해요. 🌷`; }
       box.innerHTML += `<div class="msg ai">${greeting}</div>`;
       box.scrollTop = box.scrollHeight;
-      speak(greeting.replace(/<\/?[^>]+(>|$)/g, ""));
-      _saveChatMsg(currentChatDiaryId, 'ai', greeting.replace(/<\/?[^>]+(>|$)/g, ""));
+      const greetingPlain = greeting.replace(/<\/?[^>]+(>|$)/g, "");
+      speak(greetingPlain);
+      _sessionHistory.push({ role: 'assistant', content: greetingPlain });
+      _saveChatMsg(currentChatDiaryId, 'assistant', greetingPlain);
     }
 
-    function sendChatbot() {
+    async function sendChatbot() {
       const input = document.getElementById("chatbotInput");
       const msg = input.value.trim();
       if (!msg) return;
       const box = document.getElementById("chatbotMessages");
       box.innerHTML += `<div class="msg user">${escapeHtml(msg)}</div>`;
-      input.value = ""; box.scrollTop = box.scrollHeight;
+      input.value = "";
+      input.disabled = true;
+      box.scrollTop = box.scrollHeight;
+
+      // 세션 히스토리에 user 메시지 추가
+      _sessionHistory.push({ role: 'user', content: msg });
       _saveChatMsg(currentChatDiaryId, 'user', msg);
-      setTimeout(() => {
-        const reply = aiResponses[aiIdx++ % aiResponses.length];
-        box.innerHTML += `<div class="msg ai">${reply}</div>`;
+
+      // 타이핑 표시
+      const typingId = `typing_${Date.now()}`;
+      box.innerHTML += `<div class="msg ai" id="${typingId}" style="opacity:0.55">하루가 생각 중이에요... 🌸</div>`;
+      box.scrollTop = box.scrollHeight;
+
+      try {
+        // 현재 메시지를 제외한 앞 대화를 히스토리로 전달
+        const history = _sessionHistory.slice(0, -1);
+        const res = await fetch(_CHAT_API, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: msg, diaryText: _chatDiaryText, history }),
+        });
+        const data = await res.json();
+        const reply = data.reply || '잠깐 생각이 막혔어요. 다시 한 번 말씀해 주세요 😊';
+        document.getElementById(typingId)?.remove();
+        box.innerHTML += `<div class="msg ai">${escapeHtml(reply)}</div>`;
         box.scrollTop = box.scrollHeight;
         speak(reply);
-        _saveChatMsg(currentChatDiaryId, 'ai', reply);
-      }, 900);
+        _sessionHistory.push({ role: 'assistant', content: reply });
+        _saveChatMsg(currentChatDiaryId, 'assistant', reply);
+      } catch {
+        document.getElementById(typingId)?.remove();
+        const fallback = '연결이 잠시 끊겼어요. 서버(localhost:8000)가 실행 중인지 확인해주세요 🌷';
+        box.innerHTML += `<div class="msg ai">${fallback}</div>`;
+        box.scrollTop = box.scrollHeight;
+      } finally {
+        input.disabled = false;
+        input.focus();
+      }
     }
 
     // ── 공개 설정 ──
@@ -4271,7 +4375,6 @@
 
     // ── 초기화 ──
     navBtns = document.querySelectorAll("nav button");
-    renderFavorites();
     document.getElementById('commentInput').addEventListener('keydown', e => { if (e.key === 'Enter') submitComment(); });
     _initReactions();
 
