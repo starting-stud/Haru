@@ -1,0 +1,179 @@
+import React, { useState, useCallback } from 'react';
+import {
+  View, Text, StyleSheet, ScrollView, TouchableOpacity,
+  Image, Modal, Alert,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
+import { COLORS } from '../constants/theme';
+import { getDiaries, deleteDiary } from '../utils/storage';
+
+export default function MyScreen({ navigation }) {
+  const [diaries, setDiaries] = useState([]);
+  const [selected, setSelected] = useState(null);
+
+  useFocusEffect(useCallback(() => {
+    getDiaries().then(setDiaries).catch(() => setDiaries([]));
+  }, []));
+
+  const now = new Date();
+  const thisMonth = diaries.filter(d => new Date(d.date).getMonth() === now.getMonth()).length;
+
+  const formatDate = (iso) => new Date(iso).toLocaleDateString('ko-KR', {
+    year: 'numeric', month: 'long', day: 'numeric', weekday: 'short',
+  });
+
+  return (
+    <SafeAreaView style={styles.safe} edges={[]}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120 }}>
+        {/* 프로필 카드 */}
+        <View style={styles.profileCard}>
+          <View style={styles.avatarWrap}>
+            <View style={styles.avatar}><Text style={styles.avatarEmoji}>👤</Text></View>
+          </View>
+          <View style={styles.profileInfo}>
+            <Text style={styles.profileName}>나의 그림일기</Text>
+            <View style={styles.statsRow}>
+              <View style={styles.stat}>
+                <Text style={styles.statNum}>{diaries.length}</Text>
+                <Text style={styles.statLabel}>전체 일기</Text>
+              </View>
+              <View style={styles.statDivider} />
+              <View style={styles.stat}>
+                <Text style={styles.statNum}>{thisMonth}</Text>
+                <Text style={styles.statLabel}>이번 달</Text>
+              </View>
+            </View>
+          </View>
+        </View>
+
+        {/* 일기 목록 */}
+        <Text style={styles.sectionTitle}>📚 내가 그린 그림일기</Text>
+
+        {!diaries.length ? (
+          <View style={styles.empty}>
+            <Text style={styles.emptyIcon}>📖</Text>
+            <Text style={styles.emptyText}>아직 일기가 없어요</Text>
+            <TouchableOpacity style={styles.emptyBtn} onPress={() => navigation.navigate('Draw')}>
+              <Text style={styles.emptyBtnText}>✏️ 첫 그림일기 그리기</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          diaries.map(d => (
+            <TouchableOpacity key={d.id} style={styles.card} onPress={() => setSelected(d)} activeOpacity={0.85}>
+              {d.image
+                ? <Image source={{ uri: d.image }} style={styles.thumb} />
+                : <View style={[styles.thumb, styles.thumbPlaceholder]}><Text style={{ fontSize: 28 }}>🎨</Text></View>
+              }
+              <View style={styles.cardInfo}>
+                <Text style={styles.cardDate}>{formatDate(d.date)}</Text>
+                <Text style={styles.cardText} numberOfLines={2}>{d.text || '그림일기'}</Text>
+                <View style={styles.cardBottom}>
+                  <Text style={styles.cardPrivacy}>{d.privacy === '공개' ? '🌍 공개' : '🔒 비공개'}</Text>
+                  <Text style={styles.cardHint}>눌러서 크게 보기</Text>
+                </View>
+              </View>
+            </TouchableOpacity>
+          ))
+        )}
+      </ScrollView>
+
+      {/* 일기 상세 모달 */}
+      <Modal visible={!!selected} animationType="slide" transparent onRequestClose={() => setSelected(null)}>
+        <View style={styles.modalBack}>
+          <View style={styles.modalSheet}>
+            <View style={styles.modalTopRow}>
+              <Text style={styles.modalDate}>{selected && formatDate(selected.date)}</Text>
+              <TouchableOpacity onPress={() => setSelected(null)} style={styles.modalCloseBtn}>
+                <Text style={styles.modalCloseText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            <ScrollView>
+              {selected?.image && (
+                <Image source={{ uri: selected.image }} style={styles.modalImg} resizeMode="contain" />
+              )}
+              <View style={styles.modalPrivacyBadge}>
+                <Text style={styles.modalPrivacyText}>{selected?.privacy === '공개' ? '🌍 공개' : '🔒 비공개'}</Text>
+              </View>
+              <Text style={styles.modalText}>{selected?.text || '글 없이 그림만 그리셨네요 🎨'}</Text>
+            </ScrollView>
+
+            <View style={styles.modalBtns}>
+              <TouchableOpacity style={styles.chatBtn}
+                onPress={() => { setSelected(null); navigation.navigate('ChatbotModal', { diary: selected }); }}>
+                <Text style={styles.chatBtnText}>💬 하루와 이야기하기</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.deleteBtn}
+                onPress={() => Alert.alert('삭제', '이 일기를 삭제하시겠어요?', [
+                  { text: '취소', style: 'cancel' },
+                  {
+                    text: '삭제', style: 'destructive', onPress: async () => {
+                      await deleteDiary(selected.id);
+                      setDiaries(prev => prev.filter(d => d.id !== selected.id));
+                      setSelected(null);
+                    }
+                  },
+                ])}>
+                <Text style={styles.deleteBtnText}>🗑️ 삭제</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  safe: { flex: 1, backgroundColor: COLORS.bg },
+  profileCard: {
+    flexDirection: 'row', alignItems: 'center', gap: 16,
+    margin: 16, backgroundColor: COLORS.white,
+    borderRadius: 20, borderWidth: 1.5, borderColor: COLORS.border, padding: 16,
+  },
+  avatarWrap: {},
+  avatar: { width: 80, height: 80, borderRadius: 40, backgroundColor: COLORS.orangeLight, borderWidth: 3, borderColor: COLORS.orange, alignItems: 'center', justifyContent: 'center' },
+  avatarEmoji: { fontSize: 36 },
+  profileInfo: { flex: 1 },
+  profileName: { fontSize: 18, fontWeight: '900', color: COLORS.ink, marginBottom: 10 },
+  statsRow: { flexDirection: 'row', alignItems: 'center', gap: 16 },
+  stat: { alignItems: 'center' },
+  statNum: { fontSize: 22, fontWeight: '900', color: COLORS.purple },
+  statLabel: { fontSize: 11, color: COLORS.muted, fontWeight: '700' },
+  statDivider: { width: 1.5, height: 28, backgroundColor: COLORS.border },
+  sectionTitle: { fontSize: 15, fontWeight: '800', color: COLORS.ink, marginHorizontal: 16, marginBottom: 8 },
+  empty: { alignItems: 'center', paddingVertical: 40, gap: 12 },
+  emptyIcon: { fontSize: 48 },
+  emptyText: { fontSize: 16, fontWeight: '700', color: COLORS.muted },
+  emptyBtn: { backgroundColor: COLORS.purple, borderRadius: 16, paddingHorizontal: 20, paddingVertical: 12 },
+  emptyBtnText: { fontSize: 14, fontWeight: '800', color: COLORS.white },
+  card: {
+    flexDirection: 'row', marginHorizontal: 16, marginBottom: 8,
+    backgroundColor: COLORS.white, borderRadius: 18, overflow: 'hidden',
+    borderWidth: 1.5, borderColor: COLORS.border,
+    elevation: 2, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 6, shadowOffset: { width: 0, height: 2 },
+  },
+  thumb: { width: 90, height: 90 },
+  thumbPlaceholder: { backgroundColor: COLORS.orangeLight, alignItems: 'center', justifyContent: 'center' },
+  cardInfo: { flex: 1, padding: 12, justifyContent: 'space-between' },
+  cardDate: { fontSize: 11, fontWeight: '700', color: COLORS.muted },
+  cardText: { fontSize: 13, color: COLORS.ink, lineHeight: 18, flex: 1, marginVertical: 3 },
+  cardBottom: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  cardPrivacy: { fontSize: 11, color: COLORS.muted },
+  cardHint: { fontSize: 10, color: COLORS.purple },
+  modalBack: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'flex-end' },
+  modalSheet: { backgroundColor: COLORS.bg, borderTopLeftRadius: 28, borderTopRightRadius: 28, maxHeight: '88%', paddingBottom: 20 },
+  modalTopRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 18 },
+  modalDate: { fontSize: 16, fontWeight: '800', color: COLORS.purple },
+  modalCloseBtn: { width: 32, height: 32, borderRadius: 16, backgroundColor: COLORS.purpleSoft, alignItems: 'center', justifyContent: 'center' },
+  modalCloseText: { fontSize: 14, color: COLORS.purple, fontWeight: '700' },
+  modalImg: { width: '100%', height: 260 },
+  modalPrivacyBadge: { margin: 16, marginBottom: 8, backgroundColor: COLORS.purpleLight, alignSelf: 'flex-start', borderRadius: 10, paddingHorizontal: 10, paddingVertical: 4 },
+  modalPrivacyText: { fontSize: 12, color: COLORS.purple, fontWeight: '700' },
+  modalText: { fontSize: 16, color: COLORS.ink, lineHeight: 28, paddingHorizontal: 18, paddingBottom: 16 },
+  modalBtns: { flexDirection: 'row', gap: 10, marginHorizontal: 16 },
+  chatBtn: { flex: 1, backgroundColor: COLORS.purple, borderRadius: 16, paddingVertical: 14, alignItems: 'center' },
+  chatBtnText: { fontSize: 14, fontWeight: '900', color: COLORS.white },
+  deleteBtn: { backgroundColor: COLORS.red, borderRadius: 16, paddingHorizontal: 16, paddingVertical: 14, alignItems: 'center' },
+  deleteBtnText: { fontSize: 14, fontWeight: '900', color: COLORS.white },
+});

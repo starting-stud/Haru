@@ -1,0 +1,47 @@
+# ── 의존성 ──────────────────────────────────
+node_modules/
+.pnp
+.pnp.js
+
+# ── 환경 변수 (API 키 포함 — 절대 커밋 금지) ──
+.env
+.env.local
+.env.*.local
+backend/.env
+
+# ── Expo / React Native ──────────────────────
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+.metro-health-check*
+/mobile/ios
+/mobile/android
+/mobile/.kotlin
+
+# ── 빌드 산출물 ──────────────────────────────
+build/
+*.orig.*
+
+# ── 인증서 / 키 파일 ─────────────────────────
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.pem
+
+# ── 로그 ─────────────────────────────────────
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+*.log
+
+# ── OS 생성 파일 ─────────────────────────────
+.DS_Store
+Thumbs.db
+
+# ── 에디터 ───────────────────────────────────
+.vscode/
+.idea/
+*.tsbuildinfo

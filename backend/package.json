@@ -1,0 +1,19 @@
+{
+  "name": "haru-backend",
+  "version": "1.0.0",
+  "description": "하루 그림일기 백엔드 서버",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.47.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.0",
+    "express": "^4.21.0",
+    "multer": "^2.1.1",
+    "openai": "^4.77.0"
+  }
+}

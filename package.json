@@ -1,0 +1,12 @@
+{
+  "name": "haru-diary",
+  "version": "1.0.0",
+  "description": "하루 그림일기 - 시니어를 위한 AI 그림일기 앱",
+  "scripts": {
+    "install:all": "npm run install:backend && npm run install:mobile",
+    "install:backend": "cd backend && npm install",
+    "install:mobile": "cd mobile && npm install",
+    "start": "cd backend && node server.js",
+    "dev": "cd backend && node --watch server.js"
+  }
+}
