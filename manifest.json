@@ -1,0 +1,23 @@
+{
+  "name": "하루 그림일기",
+  "short_name": "하루일기",
+  "description": "시니어를 위한 AI 그림일기 — 그리고, 기록하고, 나눠요",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#FAF3DC",
+  "theme_color": "#5E3F8C",
+  "lang": "ko",
+  "categories": ["lifestyle", "social"],
+  "icons": [
+    {
+      "src": "./icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [],
+  "prefer_related_applications": false
+}
