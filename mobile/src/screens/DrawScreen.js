@@ -3,7 +3,7 @@ import {
   View, Text, StyleSheet, TouchableOpacity,
   ScrollView, Alert, Dimensions, Modal, TextInput, ActivityIndicator, Animated,
 } from 'react-native';
-import Svg, { Path } from 'react-native-svg';
+import Svg, { Path, G } from 'react-native-svg';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import ViewShot from 'react-native-view-shot';
 import * as ScreenOrientation from 'expo-screen-orientation';
@@ -188,7 +188,58 @@ export default function DrawScreen({ navigation }) {
     });
 
   // 윤곽선 오버레이
-  const [overlay, setOverlay] = useState(null); // { path: string (0-24 space) }
+  const [overlay, setOverlay] = useState(null);
+  const [overlayMode, setOverlayMode] = useState('draw'); // 'draw' | 'adjust'
+  const [captureMode, setCaptureMode] = useState(false);
+  // PPT 스타일 선택박스 상태: x,y는 박스 중심 좌표 (캔버스 기준)
+  const [overlayBox, setOverlayBox] = useState({ cx: 0, cy: 0, w: CANVAS_W, h: CANVAS_H, rot: 0 });
+  const overlayGestureTypeRef = useRef('none'); // 'move' | 'scale' | 'rotate'
+  const overlayStartRef = useRef({});
+
+  // 캔버스 기준 좌표로 핸들 위치 계산 (회전 포함)
+  const getHandlePositions = (box) => {
+    const { cx, cy, w, h, rot } = box;
+    const θ = rot * Math.PI / 180;
+    const cos = Math.cos(θ), sin = Math.sin(θ);
+    const rotate = (lx, ly) => ({ x: cx + lx * cos - ly * sin, y: cy + lx * sin + ly * cos });
+    return {
+      br: rotate(w / 2, h / 2),         // 크기 조절 핸들 (오른쪽 아래)
+      rot: rotate(0, -h / 2 - 40),      // 회전 핸들 (위 중앙)
+    };
+  };
+
+  const overlayGesture = Gesture.Pan()
+    .runOnJS(true)
+    .minDistance(0)
+    .onBegin((e) => {
+      const box = overlayBox;
+      const handles = getHandlePositions(box);
+      const dist = (a, b) => Math.sqrt((e.x - a.x) ** 2 + (e.y - a.y) ** 2);
+      if (dist(e, handles.rot) < 28) {
+        overlayGestureTypeRef.current = 'rotate';
+        overlayStartRef.current = { rot: box.rot, startX: e.x, startY: e.y, cx: box.cx, cy: box.cy };
+      } else if (dist(e, handles.br) < 28) {
+        overlayGestureTypeRef.current = 'scale';
+        overlayStartRef.current = { w: box.w, h: box.h };
+      } else {
+        overlayGestureTypeRef.current = 'move';
+        overlayStartRef.current = { cx: box.cx, cy: box.cy };
+      }
+    })
+    .onUpdate((e) => {
+      const type = overlayGestureTypeRef.current;
+      const s = overlayStartRef.current;
+      if (type === 'move') {
+        setOverlayBox(b => ({ ...b, cx: s.cx + e.translationX, cy: s.cy + e.translationY }));
+      } else if (type === 'scale') {
+        const newW = Math.max(60, s.w + e.translationX * 1.5);
+        const ratio = s.h / s.w;
+        setOverlayBox(b => ({ ...b, w: newW, h: newW * ratio }));
+      } else if (type === 'rotate') {
+        const angle = Math.atan2(e.y - s.cy, e.x - s.cx) * 180 / Math.PI + 90;
+        setOverlayBox(b => ({ ...b, rot: angle }));
+      }
+    });
 
   // 윤곽선 인라인
   const [outlines, setOutlines] = useState([]);
@@ -299,9 +350,11 @@ export default function DrawScreen({ navigation }) {
 
   const stampOutline = (path, name) => {
     setOverlay({ path, name });
+    setOverlayBox({ cx: CANVAS_W / 2, cy: CANVAS_H / 2, w: CANVAS_W * 0.8, h: CANVAS_H * 0.8, rot: 0 });
+    setOverlayMode('adjust');
   };
 
-  const removeOverlay = () => setOverlay(null);
+  const removeOverlay = () => { setOverlay(null); setOverlayMode('draw'); };
 
   // 전체화면용 toPathD (SVG 문자열, 전체화면 사이드바에서만 사용)
   const toPathD = (points) => {
@@ -324,9 +377,15 @@ export default function DrawScreen({ navigation }) {
   const handleDone = async () => {
     if (!strokes.length) { Alert.alert('', '그림을 먼저 그려보세요 🎨'); return; }
     try {
+      setCaptureMode(true);
+      await new Promise(r => setTimeout(r, 60)); // overlay 숨김 렌더 대기
       const uri = await viewShotRef.current.capture();
+      setCaptureMode(false);
       navigation.navigate('DiaryWrite', { imageUri: uri });
-    } catch { Alert.alert('오류', '저장 중 문제가 생겼어요.'); }
+    } catch {
+      setCaptureMode(false);
+      Alert.alert('오류', '저장 중 문제가 생겼어요.');
+    }
   };
 
 
@@ -337,17 +396,31 @@ export default function DrawScreen({ navigation }) {
           <Text style={styles.backBtnText}>←</Text>
         </TouchableOpacity>
         <Text style={styles.title}>그림 그리기 🎨</Text>
-        {overlay && (
-          <TouchableOpacity onPress={removeOverlay} style={styles.overlayRemoveBtn}>
-            <Text style={styles.overlayRemoveTxt}>윤곽선 제거</Text>
-          </TouchableOpacity>
-        )}
       </View>
+
+      {/* 오버레이 컨트롤 바 */}
+      {overlay && (
+        <View style={styles.overlayBar}>
+          <TouchableOpacity
+            style={[styles.overlayBarBtn, overlayMode === 'adjust' && styles.overlayBarBtnActive]}
+            onPress={() => setOverlayMode('adjust')}>
+            <Text style={[styles.overlayBarTxt, overlayMode === 'adjust' && styles.overlayBarTxtActive]}>✋ 위치·크기·회전</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.overlayBarBtn, overlayMode === 'draw' && styles.overlayBarBtnActive]}
+            onPress={() => setOverlayMode('draw')}>
+            <Text style={[styles.overlayBarTxt, overlayMode === 'draw' && styles.overlayBarTxtActive]}>✏️ 그리기</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.overlayBarRemove} onPress={removeOverlay}>
+            <Text style={styles.overlayBarRemoveTxt}>✕ 제거</Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       {/* 스크롤 영역 */}
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 16 }}>
 
-        {/* 캔버스 (Skia GPU 렌더링) */}
+        {/* 캔버스 */}
         <View style={styles.canvasContainer}>
         <ViewShot ref={viewShotRef} style={styles.canvasWrap} options={{ format: 'png', quality: 0.95 }}>
           <View style={{ width: CANVAS_W, height: CANVAS_H }}>
@@ -359,29 +432,132 @@ export default function DrawScreen({ navigation }) {
               onStrokeAdded={(stroke) => setStrokes(s => [...s, stroke])}
               toolRef={toolRef}
               colorRef={colorRef}
-              overlay={overlay}
             />
-            {!strokes.length && !overlay && (
+            {/* 오버레이 레이어: 캡처 모드일 때 숨김 */}
+            {overlay && !captureMode && (() => {
+              const { cx, cy, w, h, rot } = overlayBox;
+              const scX = w / 24, scY = h / 24;
+              const boxLeft = cx - w / 2, boxTop = cy - h / 2;
+              const handles = getHandlePositions(overlayBox);
+              const HDOT = 14; // 모서리 핸들 크기
+              const HSCALE = 20; // 크기조절 핸들 크기
+              const HROT = 22; // 회전 핸들 크기
+
+              // draw 모드: 정적 오버레이만
+              if (overlayMode === 'draw') {
+                return (
+                  <View pointerEvents="none" style={[StyleSheet.absoluteFill]}>
+                    <View style={{
+                      position: 'absolute',
+                      left: boxLeft, top: boxTop,
+                      width: w, height: h,
+                      transform: [{ rotate: `${rot}deg` }],
+                    }}>
+                      <Svg width={w} height={h}>
+                        <Path d={overlay.path} stroke="#7B5EA7" strokeWidth={0.5}
+                          fill="none" strokeLinecap="round" strokeLinejoin="round"
+                          strokeDasharray="2 3" opacity={0.55}
+                          transform={`scale(${scX}, ${scY})`} />
+                      </Svg>
+                    </View>
+                  </View>
+                );
+              }
+
+              // adjust 모드: PPT 스타일 선택박스
+              return (
+                <GestureDetector gesture={overlayGesture}>
+                  <View style={StyleSheet.absoluteFill}>
+                    {/* SVG path + 점선 테두리 박스 */}
+                    <View style={{
+                      position: 'absolute',
+                      left: boxLeft, top: boxTop,
+                      width: w, height: h,
+                      transform: [{ rotate: `${rot}deg` }],
+                    }} pointerEvents="none">
+                      <Svg width={w} height={h}>
+                        <Path d={overlay.path} stroke="#7B5EA7" strokeWidth={0.5}
+                          fill="none" strokeLinecap="round" strokeLinejoin="round"
+                          strokeDasharray="2 3" opacity={0.65}
+                          transform={`scale(${scX}, ${scY})`} />
+                      </Svg>
+                      {/* 점선 테두리 */}
+                      <View style={{ ...StyleSheet.absoluteFillObject, borderWidth: 1.5, borderColor: '#7B5EA7', borderStyle: 'dashed', borderRadius: 4 }} />
+                      {/* 4개 모서리 흰 원 */}
+                      {[[0,0],[w-HDOT,0],[0,h-HDOT],[w-HDOT,h-HDOT]].map(([l,t],i) => (
+                        <View key={i} style={{ position:'absolute', left:l-HDOT/2+HDOT/2, top:t-HDOT/2+HDOT/2,
+                          width:HDOT, height:HDOT, borderRadius:HDOT/2,
+                          backgroundColor:'#fff', borderWidth:2, borderColor:'#7B5EA7' }} />
+                      ))}
+                    </View>
+
+                    {/* 크기 조절 핸들 (오른쪽 아래, 보라 사각) */}
+                    <View pointerEvents="none" style={{
+                      position: 'absolute',
+                      left: handles.br.x - HSCALE / 2, top: handles.br.y - HSCALE / 2,
+                      width: HSCALE, height: HSCALE, borderRadius: 5,
+                      backgroundColor: '#7B5EA7',
+                      borderWidth: 2, borderColor: '#fff',
+                      shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 3,
+                    }} />
+
+                    {/* 회전 핸들 선: SVG로 직접 그림 (transformOrigin 미지원 우회) */}
+                    {(() => {
+                      const θ = rot * Math.PI / 180;
+                      const topCenterX = cx - (h / 2) * Math.sin(θ);
+                      const topCenterY = cy - (h / 2) * Math.cos(θ);
+                      const lineEndX = handles.rot.x;
+                      const lineEndY = handles.rot.y;
+                      return (
+                        <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+                          <Svg width={CANVAS_W} height={CANVAS_H}>
+                            <Path d={`M${topCenterX},${topCenterY} L${lineEndX},${lineEndY}`}
+                              stroke="#7B5EA7" strokeWidth={1.5} />
+                          </Svg>
+                        </View>
+                      );
+                    })()}
+
+                    {/* 회전 핸들 원 */}
+                    <View pointerEvents="none" style={{
+                      position: 'absolute',
+                      left: handles.rot.x - HROT / 2, top: handles.rot.y - HROT / 2,
+                      width: HROT, height: HROT, borderRadius: HROT / 2,
+                      backgroundColor: '#7B5EA7', borderWidth: 2, borderColor: '#fff',
+                      alignItems: 'center', justifyContent: 'center',
+                      shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 3,
+                    }}>
+                      <Text style={{ color: '#fff', fontSize: 12, fontWeight: '900' }}>↻</Text>
+                    </View>
+                  </View>
+                </GestureDetector>
+              );
+            })()}
+            {!strokes.length && !overlay && !captureMode && (
               <View style={styles.hintWrap} pointerEvents="none">
                 <Text style={styles.hint}>오늘의 그림을 그려보세요 ✏️</Text>
               </View>
             )}
-            <TouchableOpacity style={styles.expandBtn} onPress={enterFullscreen}>
-              <Text style={styles.expandBtnText}>⛶</Text>
-              <Text style={styles.expandBtnLabel}>크게</Text>
-            </TouchableOpacity>
-            <View style={styles.canvasTopRight}>
-              <TouchableOpacity style={styles.canvasIconBtn} onPress={() => navigation.goBack()}>
-                <Text style={styles.canvasIconTxt}>✕</Text>
+            {!captureMode && (
+              <TouchableOpacity style={styles.expandBtn} onPress={enterFullscreen}>
+                <Text style={styles.expandBtnText}>⛶</Text>
+                <Text style={styles.expandBtnLabel}>크게</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.canvasIconBtn} onPress={() => Alert.alert(
-                '그림 그리기 도움말 🎨',
-                '• 색상과 도구를 선택해 그림을 그려요\n• ↩️ 되돌리기로 실수를 취소할 수 있어요\n• 📐 윤곽선을 선택하면 따라 그리기 도움이 돼요\n• ⛶ 크게 버튼으로 가로 전체화면에서 그려요\n• 다 그렸으면 아래 완성 버튼을 눌러요',
-                [{ text: '확인' }]
-              )}>
-                <Text style={styles.canvasIconTxt}>?</Text>
-              </TouchableOpacity>
-            </View>
+            )}
+            {!captureMode && (
+              <View style={styles.canvasTopRight}>
+                <TouchableOpacity style={styles.canvasIconBtn} onPress={() => navigation.goBack()}>
+                  <Text style={styles.canvasIconTxt}>✕</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.canvasIconBtn} onPress={() => Alert.alert(
+                  '그림 그리기 도움말 🎨',
+                  '• 색상과 도구를 선택해 그림을 그려요\n• ↩️ 되돌리기로 실수를 취소할 수 있어요\n• 📐 윤곽선을 선택하면 따라 그리기 도움이 돼요\n• ⛶ 크게 버튼으로 가로 전체화면에서 그려요\n• 다 그렸으면 아래 완성 버튼을 눌러요',
+                  [{ text: '확인' }]
+                )}>
+                  <Text style={styles.canvasIconTxt}>?</Text>
+                </TouchableOpacity>
+              </View>
+            )}
           </View>
         </ViewShot>
           <Animated.View style={[
@@ -576,14 +752,22 @@ export default function DrawScreen({ navigation }) {
                 width={lsDims.w > 1 ? lsDims.w : '100%'}
                 height={lsDims.h > 1 ? lsDims.h : '100%'}
                 style={StyleSheet.absoluteFill}>
-                {overlay && (
-                  <G>
-                    <Path d={overlay.path} stroke={COLORS.purple}
-                      strokeWidth={0.6} fill="none" strokeLinecap="round"
-                      strokeLinejoin="round" strokeDasharray="2 3" opacity={0.5}
-                      transform={`scale(${lsDims.w / 24}, ${lsDims.h / 24})`} />
-                  </G>
-                )}
+                {overlay && (() => {
+                  const { cx, cy, w, h, rot } = overlayBox;
+                  // 전체화면 캔버스 비율로 스케일
+                  const scaleW = lsDims.w / CANVAS_W;
+                  const scaleH = lsDims.h / CANVAS_H;
+                  const fCx = cx * scaleW, fCy = cy * scaleH;
+                  const fW = w * scaleW, fH = h * scaleH;
+                  return (
+                    <G transform={`translate(${fCx}, ${fCy}) rotate(${rot}) translate(${-fW/2}, ${-fH/2})`}>
+                      <Path d={overlay.path} stroke={COLORS.purple}
+                        strokeWidth={0.6} fill="none" strokeLinecap="round"
+                        strokeLinejoin="round" strokeDasharray="2 3" opacity={0.5}
+                        transform={`scale(${fW / 24}, ${fH / 24})`} />
+                    </G>
+                  );
+                })()}
                 <CompletedStrokes strokes={strokes} toPathD={toPathD} />
                 {fullCurrentStroke.current && (
                   <Path d={toPathD(fullCurrentStroke.current.points)}
@@ -642,6 +826,13 @@ const styles = StyleSheet.create({
   title: { fontSize: 18, fontWeight: '900', color: COLORS.ink, flex: 1 },
   overlayRemoveBtn: { backgroundColor: COLORS.orangeLight, borderRadius: 12, paddingHorizontal: 10, paddingVertical: 6 },
   overlayRemoveTxt: { fontSize: 12, fontWeight: '700', color: COLORS.orange },
+  overlayBar: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 16, paddingBottom: 8 },
+  overlayBarBtn: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 14, borderWidth: 1.5, borderColor: COLORS.border, backgroundColor: COLORS.white },
+  overlayBarBtnActive: { borderColor: COLORS.purple, backgroundColor: COLORS.purpleSoft },
+  overlayBarTxt: { fontSize: 12, fontWeight: '800', color: COLORS.muted },
+  overlayBarTxtActive: { color: COLORS.purple },
+  overlayBarRemove: { marginLeft: 'auto', paddingHorizontal: 12, paddingVertical: 7, borderRadius: 14, backgroundColor: COLORS.orangeLight },
+  overlayBarRemoveTxt: { fontSize: 12, fontWeight: '800', color: COLORS.orange },
   canvasContainer: { marginHorizontal: 16, position: 'relative' },
   canvasWrap: { borderRadius: 16, overflow: 'hidden', borderWidth: 1.5, borderColor: COLORS.border, backgroundColor: COLORS.white },
   micBtn: {

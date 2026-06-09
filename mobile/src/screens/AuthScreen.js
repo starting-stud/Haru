@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   ScrollView, Alert,
@@ -59,9 +59,11 @@ function LoginView({ onLogin, onGoSignup }) {
   const [pin, setPin] = useState('');
   const [saveLogin, setSaveLogin] = useState(true);
   const [error, setError] = useState('');
+  const [accounts, setAccounts] = useState({});
 
   useEffect(() => {
     AsyncStorage.getItem('haruLoginSave').then(v => { if (v === 'false') setSaveLogin(false) });
+    getAccounts().then(setAccounts);
   }, []);
 
   const handlePin = (ch) => { if (pin.length < 4) setPin(p => p + ch); setError('') };
@@ -71,13 +73,13 @@ function LoginView({ onLogin, onGoSignup }) {
   const handleLogin = async () => {
     if (!name.trim()) { setError('이름을 입력해주세요'); return }
     if (pin.length < 4) { setError('비밀번호 4자리를 눌러주세요'); return }
-    const accounts = await getAccounts();
-    if (!accounts[name.trim()]) { setError('등록되지 않은 이름이에요. 회원가입을 먼저 해주세요'); return }
-    if (accounts[name.trim()].pin !== pin) {
+    const accs = await getAccounts();
+    if (!accs[name.trim()]) { setError('등록되지 않은 이름이에요. 회원가입을 먼저 해주세요'); return }
+    if (accs[name.trim()].pin !== pin) {
       setError('비밀번호가 맞지 않아요. 다시 눌러주세요');
       setPin(''); return;
     }
-    const user = { name: name.trim(), ...accounts[name.trim()] };
+    const user = { name: name.trim(), ...accs[name.trim()] };
     if (saveLogin) {
       await AsyncStorage.setItem('haruAutoLogin', JSON.stringify({ name: name.trim(), pin }));
     } else {
@@ -86,6 +88,14 @@ function LoginView({ onLogin, onGoSignup }) {
     await AsyncStorage.setItem('haruLoginSave', String(saveLogin));
     onLogin(user);
   };
+
+  const handleQuickLogin = (acName) => {
+    setName(acName);
+    setPin('');
+    setError(acName + '님, 비밀번호를 눌러주세요 🔐');
+  };
+
+  const accountNames = Object.keys(accounts);
 
   return (
     <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
@@ -128,6 +138,29 @@ function LoginView({ onLogin, onGoSignup }) {
         <TouchableOpacity style={styles.signupBtn} onPress={onGoSignup} activeOpacity={0.85}>
           <Text style={styles.signupBtnText}>처음이세요? 회원가입</Text>
         </TouchableOpacity>
+
+        {accountNames.length > 0 && (
+          <View style={styles.quickSection}>
+            <Text style={styles.quickTitle}>빠른 로그인</Text>
+            <View style={styles.quickRow}>
+              {accountNames.map(acName => {
+                const emoji = accounts[acName].emoji || '👤';
+                const nick = (accounts[acName].profile && accounts[acName].profile.name) || acName;
+                return (
+                  <TouchableOpacity
+                    key={acName}
+                    style={[styles.quickBtn, name === acName && styles.quickBtnActive]}
+                    onPress={() => handleQuickLogin(acName)}
+                    activeOpacity={0.75}
+                  >
+                    <Text style={styles.quickEmoji}>{emoji}</Text>
+                    <Text style={styles.quickName}>{nick}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+        )}
       </View>
 
       <Text style={styles.hint}>💡 이름으로 로그인해요. 앱 안에서 쓸 닉네임은{'\n'}로그인 후 '나' 탭에서 바꿀 수 있어요</Text>
@@ -302,6 +335,17 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.white, alignItems: 'center', justifyContent: 'center', marginTop: 4,
   },
   signupBtnText: { fontSize: 16, fontWeight: '800', color: COLORS.purple },
+  quickSection: { marginTop: 14, borderTopWidth: 1, borderTopColor: COLORS.border, paddingTop: 14 },
+  quickTitle: { fontSize: 12, fontWeight: '800', color: COLORS.muted, textAlign: 'center', marginBottom: 10 },
+  quickRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'center' },
+  quickBtn: {
+    alignItems: 'center', paddingVertical: 10, paddingHorizontal: 14,
+    borderRadius: 18, borderWidth: 1.5, borderColor: COLORS.border,
+    backgroundColor: COLORS.white, minWidth: 68,
+  },
+  quickBtnActive: { borderColor: COLORS.purple, backgroundColor: COLORS.purpleSoft },
+  quickEmoji: { fontSize: 28, marginBottom: 4 },
+  quickName: { fontSize: 11, fontWeight: '800', color: COLORS.ink },
   hint: { marginTop: 20, textAlign: 'center', fontSize: 12, color: COLORS.muted, fontWeight: '700', lineHeight: 20 },
   backBtn: { alignSelf: 'flex-start', paddingBottom: 12 },
   backBtnText: { fontSize: 22, color: COLORS.muted },

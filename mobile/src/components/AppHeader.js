@@ -31,7 +31,7 @@ export default function AppHeader({ onLogout }) {
             ])}
             activeOpacity={0.7}
           >
-            <Text style={styles.logoutText}>🚪</Text>
+            <Text style={styles.logoutText}>로그아웃</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -56,6 +56,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12, paddingVertical: 6,
   },
   dateText: { fontSize: 13, fontWeight: '800', color: COLORS.purple },
-  logoutBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: COLORS.purpleSoft, alignItems: 'center', justifyContent: 'center' },
-  logoutText: { fontSize: 18 },
+  logoutBtn: { height: 34, paddingHorizontal: 12, borderRadius: 17, borderWidth: 1.5, borderColor: COLORS.border, backgroundColor: COLORS.white, alignItems: 'center', justifyContent: 'center' },
+  logoutText: { fontSize: 12, fontWeight: '800', color: COLORS.muted },
 });

@@ -1,6 +1,6 @@
 import React, { useRef, useState, forwardRef } from 'react';
 import { StyleSheet } from 'react-native';
-import Svg, { Path, G } from 'react-native-svg';
+import Svg, { Path } from 'react-native-svg';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 
 // 포인트 배열 → SVG path (선형, 보정 없음)
@@ -26,7 +26,7 @@ const CompletedStrokes = React.memo(({ strokes }) => (
 
 const DrawCanvas = forwardRef(({
   width, height, strokes, onStrokeAdded,
-  toolRef, colorRef, overlay,
+  toolRef, colorRef,
 }, ref) => {
   const currentStrokeRef = useRef(null);
   const [, forceUpdate] = useState(0);
@@ -86,24 +86,11 @@ const DrawCanvas = forwardRef(({
       }
     });
 
-  const scaleX = width / 24;
-  const scaleY = height / 24;
   const cur = currentStrokeRef.current;
 
   return (
     <GestureDetector gesture={gesture}>
       <Svg width={width} height={height} style={{ backgroundColor: '#FFFFFF' }}>
-        {overlay && (
-          <Path
-            d={overlay.path}
-            stroke="#7B5EA7"
-            strokeWidth={1 / Math.min(scaleX, scaleY)}
-            strokeDasharray={`${3 / Math.min(scaleX, scaleY)} ${4 / Math.min(scaleX, scaleY)}`}
-            fill="none" strokeLinecap="round" strokeLinejoin="round"
-            opacity={0.55}
-            transform={`scale(${scaleX}, ${scaleY})`}
-          />
-        )}
         <CompletedStrokes strokes={strokes} />
         {cur && (
           <Path d={makePathD(cur.points)} stroke={cur.color}

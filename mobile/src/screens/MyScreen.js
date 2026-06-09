@@ -6,6 +6,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as ImagePicker from 'expo-image-picker';
 import { COLORS } from '../constants/theme';
 import { getDiaries, deleteDiary, getChatHistory } from '../utils/storage';
 
@@ -63,7 +64,6 @@ function ProfileEditModal({ visible, user, onClose, onSave }) {
           </View>
 
           <ScrollView contentContainerStyle={{ padding: 20, gap: 16 }}>
-            {/* 이모지 선택 */}
             <Text style={styles.editLabel}>나를 표현하는 이모지</Text>
             <View style={styles.emojiGrid}>
               {PROFILE_EMOJIS.map(e => (
@@ -78,7 +78,6 @@ function ProfileEditModal({ visible, user, onClose, onSave }) {
               ))}
             </View>
 
-            {/* 닉네임 */}
             <Text style={styles.editLabel}>닉네임 <Text style={styles.editLabelSub}>(앱에서 표시되는 이름)</Text></Text>
             <TextInput
               style={styles.editInput}
@@ -89,7 +88,6 @@ function ProfileEditModal({ visible, user, onClose, onSave }) {
               maxLength={12}
             />
 
-            {/* 보호자 */}
             <Text style={styles.editLabel}>보호자 이름 <Text style={styles.editLabelSub}>(선택)</Text></Text>
             <TextInput
               style={styles.editInput}
@@ -133,6 +131,29 @@ export default function MyScreen({ navigation }) {
     }
   }, [selected]);
 
+  const handlePhotoChange = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('권한 필요', '사진을 선택하려면 갤러리 접근 권한이 필요해요');
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.6,
+      base64: true,
+    });
+    if (!result.canceled && result.assets[0].base64) {
+      const photo = `data:image/jpeg;base64,${result.assets[0].base64}`;
+      await saveProfile(user.name, {
+        emoji: user.emoji,
+        profile: { ...user.profile, photo },
+      });
+      setUser(prev => ({ ...prev, profile: { ...prev.profile, photo } }));
+    }
+  };
+
   const now = new Date();
   const thisMonth = diaries.filter(d => new Date(d.date).getMonth() === now.getMonth()).length;
 
@@ -142,6 +163,7 @@ export default function MyScreen({ navigation }) {
 
   const displayName = user?.profile?.name || user?.name || '나';
   const displayEmoji = user?.emoji || '👤';
+  const displayPhoto = user?.profile?.photo;
   const guardian = user?.profile?.guardian;
 
   return (
@@ -150,11 +172,20 @@ export default function MyScreen({ navigation }) {
 
         {/* 프로필 카드 */}
         <View style={styles.profileCard}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarEmoji}>{displayEmoji}</Text>
-          </View>
+          {/* 아바타: 사진 있으면 사진, 없으면 이모지. 누르면 갤러리 */}
+          <TouchableOpacity style={styles.avatar} onPress={handlePhotoChange} activeOpacity={0.8}>
+            {displayPhoto ? (
+              <Image source={{ uri: displayPhoto }} style={styles.avatarPhoto} />
+            ) : (
+              <Text style={styles.avatarEmoji}>{displayEmoji}</Text>
+            )}
+            <View style={styles.avatarCamBadge}>
+              <Text style={{ fontSize: 11 }}>📷</Text>
+            </View>
+          </TouchableOpacity>
+
           <View style={styles.profileInfo}>
-            <Text style={styles.profileName}>{displayName}</Text>
+              <Text style={styles.profileName}>{displayName}</Text>
             {!!guardian && <Text style={styles.guardianText}>👨‍👩‍👧 {guardian}</Text>}
             <View style={styles.statsRow}>
               <View style={styles.stat}>
@@ -204,7 +235,7 @@ export default function MyScreen({ navigation }) {
         )}
       </ScrollView>
 
-      {/* 프로필 편집 모달 */}
+      {/* 프로필 편집 모달 (이모지 + 보호자) */}
       <ProfileEditModal
         visible={editVisible}
         user={user}
@@ -288,10 +319,21 @@ const styles = StyleSheet.create({
     margin: 16, backgroundColor: COLORS.white,
     borderRadius: 20, borderWidth: 1.5, borderColor: COLORS.border, padding: 16,
   },
-  avatar: { width: 72, height: 72, borderRadius: 36, backgroundColor: COLORS.orangeLight, borderWidth: 3, borderColor: COLORS.orange, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+  avatar: { width: 72, height: 72, borderRadius: 36, backgroundColor: COLORS.orangeLight, borderWidth: 3, borderColor: COLORS.orange, alignItems: 'center', justifyContent: 'center', flexShrink: 0, overflow: 'visible' },
+  avatarPhoto: { width: 66, height: 66, borderRadius: 33 },
   avatarEmoji: { fontSize: 34 },
+  avatarCamBadge: { position: 'absolute', bottom: -2, right: -2, width: 22, height: 22, borderRadius: 11, backgroundColor: COLORS.white, borderWidth: 1.5, borderColor: COLORS.border, alignItems: 'center', justifyContent: 'center' },
   profileInfo: { flex: 1 },
-  profileName: { fontSize: 17, fontWeight: '900', color: COLORS.ink, marginBottom: 2 },
+  nickRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 2 },
+  profileName: { fontSize: 17, fontWeight: '900', color: COLORS.ink },
+  nickEditBtn: { padding: 2 },
+  nickEditTxt: { fontSize: 14 },
+  nickEditRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 2 },
+  nickInput: { flex: 1, height: 36, borderWidth: 1.5, borderColor: COLORS.purple, borderRadius: 10, paddingHorizontal: 10, fontSize: 15, fontWeight: '700', color: COLORS.ink, backgroundColor: '#FFFDF7' },
+  nickSaveBtn: { backgroundColor: COLORS.purple, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6 },
+  nickSaveTxt: { fontSize: 12, fontWeight: '800', color: COLORS.white },
+  nickCancelBtn: { width: 28, height: 28, borderRadius: 14, backgroundColor: COLORS.purpleSoft, alignItems: 'center', justifyContent: 'center' },
+  nickCancelTxt: { fontSize: 12, color: COLORS.purple, fontWeight: '700' },
   guardianText: { fontSize: 11, color: COLORS.muted, fontWeight: '700', marginBottom: 8 },
   statsRow: { flexDirection: 'row', alignItems: 'center', gap: 16 },
   stat: { alignItems: 'center' },
@@ -346,7 +388,7 @@ const styles = StyleSheet.create({
   modalDate: { fontSize: 16, fontWeight: '800', color: COLORS.purple },
   modalCloseBtn: { width: 32, height: 32, borderRadius: 16, backgroundColor: COLORS.purpleSoft, alignItems: 'center', justifyContent: 'center' },
   modalCloseText: { fontSize: 14, color: COLORS.purple, fontWeight: '700' },
-  modalImg: { width: '100%', height: 260 },
+  modalImg: { width: '100%', aspectRatio: 16 / 9 },
   modalPrivacyBadge: { margin: 16, marginBottom: 8, backgroundColor: COLORS.purpleLight, alignSelf: 'flex-start', borderRadius: 10, paddingHorizontal: 10, paddingVertical: 4 },
   modalPrivacyText: { fontSize: 12, color: COLORS.purple, fontWeight: '700' },
   modalText: { fontSize: 16, color: COLORS.ink, lineHeight: 28, paddingHorizontal: 18, paddingBottom: 16 },
