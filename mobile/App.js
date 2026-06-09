@@ -1,18 +1,20 @@
 import 'react-native-url-polyfill/auto';
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { Text, View, StyleSheet } from 'react-native';
+import { Text, View, StyleSheet, ActivityIndicator } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import HomeScreen from './src/screens/HomeScreen';
 import DrawScreen from './src/screens/DrawScreen';
 import DiaryWriteScreen from './src/screens/DiaryWriteScreen';
 import MyScreen from './src/screens/MyScreen';
 import ChatbotScreen from './src/screens/ChatbotScreen';
+import AuthScreen from './src/screens/AuthScreen';
 import AppHeader from './src/components/AppHeader';
 import { COLORS } from './src/constants/theme';
 
@@ -28,10 +30,10 @@ function TabIcon({ emoji, label, focused }) {
   );
 }
 
-function MainTabs() {
+function MainTabs({ onLogout }) {
   return (
     <View style={{ flex: 1, backgroundColor: COLORS.bg }}>
-      <AppHeader />
+      <AppHeader onLogout={onLogout} />
       <Tab.Navigator
         screenOptions={{
           headerShown: false,
@@ -51,19 +53,56 @@ function MainTabs() {
 }
 
 export default function App() {
+  const [currentUser, setCurrentUser] = useState(undefined); // undefined = 로딩 중
+
+  useEffect(() => {
+    // 자동 로그인 체크
+    (async () => {
+      try {
+        const saved = await AsyncStorage.getItem('haruAutoLogin');
+        if (saved) {
+          const { name, pin } = JSON.parse(saved);
+          const raw = await AsyncStorage.getItem('haruAccounts');
+          const accounts = raw ? JSON.parse(raw) : {};
+          if (accounts[name] && accounts[name].pin === pin) {
+            setCurrentUser({ name, ...accounts[name] });
+            return;
+          }
+        }
+      } catch (e) {
+        await AsyncStorage.removeItem('haruAutoLogin');
+      }
+      setCurrentUser(null);
+    })();
+  }, []);
+
+  if (currentUser === undefined) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.bg }}>
+        <ActivityIndicator size="large" color={COLORS.purple} />
+      </View>
+    );
+  }
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-    <SafeAreaProvider>
-      <StatusBar style="dark" backgroundColor={COLORS.bg} />
-      <NavigationContainer>
-        <Stack.Navigator screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
-          <Stack.Screen name="Main" component={MainTabs} />
-          <Stack.Screen name="Draw" component={DrawScreen} />
-          <Stack.Screen name="DiaryWrite" component={DiaryWriteScreen} />
-          <Stack.Screen name="ChatbotModal" component={ChatbotScreen} />
-        </Stack.Navigator>
-      </NavigationContainer>
-    </SafeAreaProvider>
+      <SafeAreaProvider>
+        <StatusBar style="dark" backgroundColor={COLORS.bg} />
+        {currentUser ? (
+          <NavigationContainer>
+            <Stack.Navigator screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
+              <Stack.Screen name="Main">
+                {() => <MainTabs onLogout={async () => { await AsyncStorage.removeItem('haruAutoLogin'); setCurrentUser(null); }} />}
+              </Stack.Screen>
+              <Stack.Screen name="Draw" component={DrawScreen} />
+              <Stack.Screen name="DiaryWrite" component={DiaryWriteScreen} />
+              <Stack.Screen name="ChatbotModal" component={ChatbotScreen} />
+            </Stack.Navigator>
+          </NavigationContainer>
+        ) : (
+          <AuthScreen onLogin={setCurrentUser} />
+        )}
+      </SafeAreaProvider>
     </GestureHandlerRootView>
   );
 }

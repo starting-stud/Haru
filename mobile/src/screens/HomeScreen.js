@@ -1,10 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity,
   Modal, TextInput, KeyboardAvoidingView, Platform, FlatList,
+  Image, ActivityIndicator, RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import { COLORS } from '../constants/theme';
+import { supabase } from '../lib/supabase';
 
 const GREETINGS = [
   '오늘도 소중한 하루예요 🌷',
@@ -22,35 +25,17 @@ const REACTIONS = [
   { emoji: '🥰', label: '따뜻해요' },
 ];
 
-const MOCK_FEED = [
-  {
-    id: 1, author: '이웃 박○○님', time: '방금 전', emoji: '🌸',
-    desc: '우리 집 귀여운 바둑이를 그려보았습니다. 꼬리를 살랑살랑 흔드는 모습이 참 예뻐요. 🐾',
-    reactions: { '❤️': 5, '👍': 2 },
-    comments: [
-      { id: 1, author: '친구 김○○님', text: '너무 귀여워요! 강아지 이름이 뭔가요? 🐶', time: '방금 전' },
-      { id: 2, author: '이웃 최○○님', text: '바둑이 그림 정말 잘 그리셨어요 😊', time: '1분 전' },
-      { id: 3, author: '친구 이○○님', text: '꼬리 표현이 너무 생생해요!', time: '3분 전' },
-    ],
-  },
-  {
-    id: 2, author: '친구 김○○님', time: '1시간 전', emoji: '🌹',
-    desc: '딸아이가 베란다에 장미꽃 화분을 놓아두었네요. 매일 아침 꽃을 보며 마음을 달랩니다.',
-    reactions: { '❤️': 8, '🥰': 4 },
-    comments: [
-      { id: 1, author: '이웃 박○○님', text: '장미꽃 그림이 정말 예쁘네요 🌹', time: '30분 전' },
-    ],
-  },
-  {
-    id: 3, author: '이웃 최○○님', time: '어제', emoji: '🏡',
-    desc: '시골에 살던 그리운 기와집 오두막집을 회상하며 그려보았습니다. 아련하네요.',
-    reactions: { '😢': 3, '🥰': 6 },
-    comments: [],
-  },
-];
+function timeAgo(iso) {
+  const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
+  if (diff < 60) return '방금 전';
+  if (diff < 3600) return `${Math.floor(diff / 60)}분 전`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}시간 전`;
+  if (diff < 604800) return `${Math.floor(diff / 86400)}일 전`;
+  return new Date(iso).toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' });
+}
 
-function CommentSheet({ visible, item, onClose }) {
-  const [comments, setComments] = useState(item.comments);
+function CommentSheet({ visible, onClose }) {
+  const [comments, setComments] = useState([]);
   const [input, setInput] = useState('');
 
   const addComment = () => {
@@ -65,9 +50,7 @@ function CommentSheet({ visible, item, onClose }) {
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <View style={styles.modalBack}>
-        {/* 배경 터치 → 닫기 */}
         <TouchableOpacity style={StyleSheet.absoluteFill} onPress={onClose} activeOpacity={1} />
-
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
           <View style={styles.commentSheet}>
             <View style={styles.sheetHandle} />
@@ -77,7 +60,6 @@ function CommentSheet({ visible, item, onClose }) {
                 <Text style={styles.sheetCloseText}>✕</Text>
               </TouchableOpacity>
             </View>
-
             {comments.length === 0 ? (
               <Text style={styles.commentEmpty}>아직 댓글이 없어요. 첫 댓글을 남겨보세요 😊</Text>
             ) : (
@@ -99,7 +81,6 @@ function CommentSheet({ visible, item, onClose }) {
                 )}
               />
             )}
-
             <View style={styles.commentInputRow}>
               <TextInput
                 style={styles.commentInput}
@@ -123,7 +104,7 @@ function CommentSheet({ visible, item, onClose }) {
 
 function FeedCard({ item }) {
   const [myReaction, setMyReaction] = useState(null);
-  const [reactions, setReactions] = useState({ ...item.reactions });
+  const [reactions, setReactions] = useState({});
   const [showReactions, setShowReactions] = useState(false);
   const [showComments, setShowComments] = useState(false);
 
@@ -143,24 +124,30 @@ function FeedCard({ item }) {
 
   return (
     <View style={styles.feedCard}>
-      {/* 작성자 */}
       <View style={styles.feedHeader}>
         <View style={styles.feedAvatar}><Text style={styles.feedAvatarEmoji}>👤</Text></View>
         <View>
-          <Text style={styles.feedAuthor}>{item.author}</Text>
-          <Text style={styles.feedTime}>{item.time}</Text>
+          <Text style={styles.feedAuthor}>이웃님의 그림일기</Text>
+          <Text style={styles.feedTime}>{timeAgo(item.created_at)}</Text>
         </View>
       </View>
 
-      {/* 그림 */}
-      <View style={styles.feedDrawing}>
-        <Text style={{ fontSize: 72 }}>{item.emoji}</Text>
-      </View>
+      {item.drawing_url ? (
+        <Image
+          source={{ uri: item.drawing_url }}
+          style={styles.feedImage}
+          resizeMode="cover"
+        />
+      ) : (
+        <View style={styles.feedImageEmpty}>
+          <Text style={{ fontSize: 48 }}>🎨</Text>
+        </View>
+      )}
 
-      {/* 설명 */}
-      <Text style={styles.feedDesc}>{item.desc}</Text>
+      {!!item.text_content && (
+        <Text style={styles.feedDesc}>{item.text_content}</Text>
+      )}
 
-      {/* 반응 + 댓글 버튼 */}
       <View style={styles.feedActions}>
         <TouchableOpacity
           style={[styles.reactionSummary, showReactions && styles.reactionSummaryActive]}
@@ -179,11 +166,10 @@ function FeedCard({ item }) {
           onPress={() => setShowComments(true)}
           activeOpacity={0.7}
         >
-          <Text style={styles.commentBtnText}>💬 {item.comments.length}</Text>
+          <Text style={styles.commentBtnText}>💬 댓글</Text>
         </TouchableOpacity>
       </View>
 
-      {/* 반응 선택 패널 */}
       {showReactions && (
         <View style={styles.reactionPanel}>
           {REACTIONS.map(r => (
@@ -205,12 +191,7 @@ function FeedCard({ item }) {
         </View>
       )}
 
-      {/* 댓글 시트 */}
-      <CommentSheet
-        visible={showComments}
-        item={item}
-        onClose={() => setShowComments(false)}
-      />
+      <CommentSheet visible={showComments} onClose={() => setShowComments(false)} />
     </View>
   );
 }
@@ -220,18 +201,68 @@ export default function HomeScreen({ navigation }) {
   const greeting = GREETINGS[now.getDate() % GREETINGS.length];
   const dateLabel = now.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' });
 
+  const [feed, setFeed] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState(null);
+
+  const loadFeed = async (isRefresh = false) => {
+    if (isRefresh) setRefreshing(true);
+    else setLoading(true);
+    setError(null);
+    try {
+      const { data, error: err } = await supabase
+        .from('diaries')
+        .select('id, drawing_url, text_content, diary_date, created_at')
+        .eq('privacy', '공개')
+        .order('created_at', { ascending: false })
+        .limit(30);
+      if (err) throw err;
+      setFeed(data || []);
+    } catch (e) {
+      setError('피드를 불러오지 못했어요');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  useFocusEffect(useCallback(() => { loadFeed(); }, []));
+
   return (
     <SafeAreaView style={styles.safe} edges={[]}>
-      <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 180 }}>
+      <ScrollView
+        style={styles.scroll}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 180 }}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => loadFeed(true)} tintColor={COLORS.purple} />}
+      >
         <View style={styles.greetCard}>
           <Text style={styles.dateLabel}>{dateLabel}</Text>
           <Text style={styles.greetText}>{greeting}</Text>
         </View>
 
-        {MOCK_FEED.map(item => (
-          <FeedCard key={item.id} item={item} />
-        ))}
+        {loading ? (
+          <View style={styles.center}>
+            <ActivityIndicator size="large" color={COLORS.purple} />
+            <Text style={styles.loadingText}>이웃들의 그림일기를 불러오는 중...</Text>
+          </View>
+        ) : error ? (
+          <View style={styles.center}>
+            <Text style={styles.errorText}>{error}</Text>
+            <TouchableOpacity style={styles.retryBtn} onPress={() => loadFeed()}>
+              <Text style={styles.retryBtnText}>다시 시도</Text>
+            </TouchableOpacity>
+          </View>
+        ) : !feed.length ? (
+          <View style={styles.center}>
+            <Text style={{ fontSize: 48 }}>📖</Text>
+            <Text style={styles.emptyText}>아직 공개된 그림일기가 없어요</Text>
+            <Text style={styles.emptySubText}>일기를 공개로 저장하면 여기에 나타나요</Text>
+          </View>
+        ) : (
+          feed.map(item => <FeedCard key={item.id} item={item} />)
+        )}
       </ScrollView>
 
       <TouchableOpacity style={styles.fab} onPress={() => navigation.navigate('Draw')} activeOpacity={0.85}>
@@ -251,7 +282,6 @@ const styles = StyleSheet.create({
   dateLabel: { fontSize: 12, color: COLORS.muted, fontWeight: '700', marginBottom: 6 },
   greetText: { fontSize: 17, color: COLORS.ink, fontWeight: '800' },
 
-  // 피드 카드 - overflow 제거해서 반응 패널이 잘리지 않게
   feedCard: {
     marginHorizontal: 16, marginBottom: 14,
     backgroundColor: COLORS.white, borderRadius: 20,
@@ -262,11 +292,14 @@ const styles = StyleSheet.create({
   feedAvatarEmoji: { fontSize: 18 },
   feedAuthor: { fontSize: 13, fontWeight: '800', color: COLORS.ink },
   feedTime: { fontSize: 11, color: COLORS.muted },
-  feedDrawing: {
+  feedImage: {
+    width: '100%', aspectRatio: 4 / 3,
+    borderTopWidth: 1, borderBottomWidth: 1, borderColor: COLORS.border,
+  },
+  feedImageEmpty: {
     width: '100%', aspectRatio: 4 / 3,
     backgroundColor: '#FFFBF5', alignItems: 'center', justifyContent: 'center',
     borderTopWidth: 1, borderBottomWidth: 1, borderColor: COLORS.border,
-    borderRadius: 0,
   },
   feedDesc: { fontSize: 13, color: COLORS.ink, lineHeight: 20, padding: 12, paddingBottom: 8 },
 
@@ -284,12 +317,10 @@ const styles = StyleSheet.create({
   },
   commentBtnText: { fontSize: 13, color: COLORS.purple, fontWeight: '700' },
 
-  // 반응 패널
   reactionPanel: {
     flexDirection: 'row', flexWrap: 'wrap', gap: 6,
     paddingHorizontal: 12, paddingBottom: 12,
-    borderTopWidth: 1, borderTopColor: COLORS.border,
-    paddingTop: 10,
+    borderTopWidth: 1, borderTopColor: COLORS.border, paddingTop: 10,
   },
   reactionBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 5,
@@ -302,7 +333,14 @@ const styles = StyleSheet.create({
   reactionLabelActive: { color: COLORS.purple },
   reactionCount: { fontSize: 12, color: COLORS.purple, fontWeight: '900' },
 
-  // FAB
+  center: { alignItems: 'center', paddingVertical: 48, gap: 12 },
+  loadingText: { fontSize: 14, color: COLORS.muted, fontWeight: '700' },
+  errorText: { fontSize: 14, color: COLORS.red, fontWeight: '700' },
+  retryBtn: { backgroundColor: COLORS.purple, borderRadius: 14, paddingHorizontal: 20, paddingVertical: 10 },
+  retryBtnText: { fontSize: 14, color: COLORS.white, fontWeight: '800' },
+  emptyText: { fontSize: 15, color: COLORS.ink, fontWeight: '800' },
+  emptySubText: { fontSize: 12, color: COLORS.muted, fontWeight: '700' },
+
   fab: {
     position: 'absolute', bottom: 130, right: 20,
     backgroundColor: COLORS.purple, borderRadius: 28,
@@ -312,7 +350,6 @@ const styles = StyleSheet.create({
   },
   fabText: { color: COLORS.white, fontWeight: '900', fontSize: 15 },
 
-  // 댓글 모달
   modalBack: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'flex-end' },
   commentSheet: {
     backgroundColor: COLORS.white,

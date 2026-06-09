@@ -374,15 +374,18 @@
 
     .canvas-hint {
       position: absolute;
-      left: 50%;
-      top: 50%;
-      transform: translate(-50%, -50%);
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
       color: #C9B07A;
       text-align: center;
       font-size: 18px;
       font-weight: 800;
       pointer-events: none;
       line-height: 1.6;
+      z-index: 5;
     }
 
     .canvas-hint small {
@@ -2721,14 +2724,236 @@
         opacity: 1;
       }
     }
+
+    /* ══ 로그인 / 회원가입 ══ */
+    #loginScreen {
+      position:absolute; inset:0; z-index:5000; background:var(--bg);
+      flex-direction:column; align-items:center; justify-content:center;
+      overflow:hidden; padding:0; gap:0;
+    }
+    .login-inner {
+      width:100%; max-width:390px; padding:20px 24px 24px;
+      display:flex; flex-direction:column; align-items:center; gap:0;
+      box-sizing:border-box; flex-shrink:0;
+    }
+    .login-logo-wrap { display:flex; flex-direction:column; align-items:center; gap:10px; margin-bottom:14px }
+    .login-logo {
+      width:80px; height:80px; border-radius:50%;
+      background:linear-gradient(135deg,#FFE5B4,#FFD4A3); border:3px solid var(--orange);
+      display:flex; align-items:center; justify-content:center; font-size:38px;
+      box-shadow:0 8px 24px rgba(232,132,90,.32); animation:login-float 3s ease-in-out infinite;
+    }
+    @keyframes login-float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+    .login-title { font-family:'Gaegu',cursive; font-size:32px; font-weight:700; color:var(--purple); letter-spacing:-0.5px }
+    .login-sub { font-size:13px; color:var(--muted); font-weight:700 }
+    .login-card {
+      width:100%; background:white; border:1.5px solid var(--border);
+      border-radius:28px; padding:24px 22px 20px; box-shadow:var(--shadow2);
+      display:flex; flex-direction:column; gap:14px;
+    }
+    .login-label { font-size:13px; font-weight:800; color:var(--muted); margin-bottom:4px }
+    .login-input {
+      width:100%; height:52px; border:1.5px solid var(--border); border-radius:16px;
+      padding:0 18px; font-size:17px; font-family:inherit; font-weight:700;
+      color:var(--ink); background:#FFFDF7; outline:none; transition:border-color .15s,box-shadow .15s;
+    }
+    .login-input:focus { border-color:var(--purple); box-shadow:0 0 0 3px rgba(94,63,140,.12) }
+    .pin-dot-wrap { display:flex; gap:8px; margin-bottom:2px }
+    .pin-dot { width:14px; height:14px; border-radius:50%; border:2px solid var(--border2); background:transparent; transition:all .15s }
+    .pin-dot.filled { background:var(--purple); border-color:var(--purple) }
+    .pin-numpad { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:4px }
+    .pin-btn {
+      height:54px; border:1.5px solid var(--border); border-radius:16px; background:white;
+      font-size:22px; font-weight:800; font-family:inherit; color:var(--ink); cursor:pointer;
+      transition:all .12s; display:flex; align-items:center; justify-content:center;
+    }
+    .pin-btn:active { transform:scale(.93); background:var(--purple-soft) }
+    .pin-btn.del { font-size:18px; color:var(--muted) }
+    .pin-btn.empty { border-color:transparent; background:transparent; pointer-events:none }
+    .login-btn {
+      width:100%; height:54px; border:0; border-radius:27px;
+      background:linear-gradient(135deg,var(--purple),var(--purple2)); color:white;
+      font-size:18px; font-weight:800; font-family:inherit; box-shadow:var(--shadow2);
+      cursor:pointer; transition:transform .15s; margin-top:4px;
+    }
+    .login-btn:active { transform:scale(.97) }
+    .signup-btn {
+      width:100%; height:48px; border:1.5px solid var(--purple-soft); border-radius:24px;
+      background:white; color:var(--purple); font-size:16px; font-weight:800;
+      font-family:inherit; cursor:pointer; transition:all .15s; margin-top:2px;
+    }
+    .signup-btn:active { background:var(--purple-soft); transform:scale(.97) }
+    .login-save-row { display:flex; align-items:center; gap:10px; padding:4px 2px }
+    .login-save-check {
+      width:22px; height:22px; border-radius:8px; border:2px solid var(--border2);
+      background:white; display:flex; align-items:center; justify-content:center;
+      cursor:pointer; flex-shrink:0; transition:all .15s;
+    }
+    .login-save-check.on { background:var(--purple); border-color:var(--purple); color:white }
+    .login-save-label { font-size:14px; font-weight:800; color:var(--muted); cursor:pointer }
+    .login-error { color:var(--red); font-size:13px; font-weight:800; text-align:center; min-height:20px }
+    .login-accounts-hint { margin-top:16px; text-align:center; font-size:12px; color:var(--muted); font-weight:700; line-height:1.7 }
+    .login-quick-btns { display:flex; gap:8px; justify-content:center; margin-top:8px }
+    .login-quick-btn {
+      padding:8px 18px; border:1.5px solid var(--purple-soft); border-radius:20px;
+      background:var(--purple-soft); color:var(--purple); font-size:14px; font-weight:800;
+      font-family:inherit; cursor:pointer; transition:all .15s;
+    }
+    .login-quick-btn:active { transform:scale(.95) }
+    .emoji-pick-btn {
+      width:46px; height:46px; border-radius:14px; border:2px solid var(--border);
+      background:white; font-size:24px; cursor:pointer;
+      display:flex; align-items:center; justify-content:center; transition:all .15s;
+    }
+    .emoji-pick-btn.selected {
+      border-color:var(--purple); background:var(--purple-soft);
+      transform:scale(1.12); box-shadow:0 4px 12px rgba(94,63,140,.2);
+    }
+    .emoji-pick-btn:active { transform:scale(.93) }
+    .logout-btn {
+      width:36px; height:36px; border-radius:50%; border:1.5px solid var(--border);
+      background:white; display:flex; align-items:center; justify-content:center;
+      font-size:16px; cursor:pointer; flex-shrink:0;
+    }
+    .logout-btn:active { transform:scale(.93) }
   </style>
 </head>
 
 <body>
   <div class="phone">
 
+    <!-- 로그인 화면 -->
+    <div id="loginScreen" style="display:flex">
+      <div class="login-inner">
+        <div class="login-logo-wrap">
+          <div class="login-logo">🌼</div>
+          <div class="login-title">하루 그림일기</div>
+          <div class="login-sub">소중한 하루를 그림으로 기록해요</div>
+        </div>
+        <div class="login-card">
+          <div>
+            <div class="login-label">👤 이름</div>
+            <input class="login-input" id="loginName" type="text" placeholder="이름을 입력해주세요" maxlength="10"
+              oninput="onLoginNameInput()" autocomplete="off" />
+          </div>
+          <div>
+            <div class="login-label" style="margin-bottom:8px">🔐 비밀번호 (숫자 4자리)</div>
+            <div class="pin-dot-wrap" id="pinDots">
+              <div class="pin-dot" id="pd0"></div>
+              <div class="pin-dot" id="pd1"></div>
+              <div class="pin-dot" id="pd2"></div>
+              <div class="pin-dot" id="pd3"></div>
+            </div>
+            <div class="pin-numpad">
+              <button class="pin-btn" onclick="pinPress('1')">1</button>
+              <button class="pin-btn" onclick="pinPress('2')">2</button>
+              <button class="pin-btn" onclick="pinPress('3')">3</button>
+              <button class="pin-btn" onclick="pinPress('4')">4</button>
+              <button class="pin-btn" onclick="pinPress('5')">5</button>
+              <button class="pin-btn" onclick="pinPress('6')">6</button>
+              <button class="pin-btn" onclick="pinPress('7')">7</button>
+              <button class="pin-btn" onclick="pinPress('8')">8</button>
+              <button class="pin-btn" onclick="pinPress('9')">9</button>
+              <button class="pin-btn empty"></button>
+              <button class="pin-btn" onclick="pinPress('0')">0</button>
+              <button class="pin-btn del" onclick="pinDel()">⌫</button>
+            </div>
+          </div>
+          <div class="login-save-row">
+            <div class="login-save-check" id="loginSaveCheck" onclick="toggleLoginSave()">✓</div>
+            <span class="login-save-label" onclick="toggleLoginSave()">로그인 정보 저장 (자동 로그인)</span>
+          </div>
+          <div class="login-error" id="loginError"></div>
+          <button class="login-btn" onclick="doLogin()">로그인</button>
+          <button class="signup-btn" onclick="openSignup()">처음이세요? 회원가입</button>
+        </div>
+        <div class="login-accounts-hint">
+          💡 이름으로 로그인해요. 앱 안에서 쓸 닉네임은<br>로그인 후 '나' 탭에서 바꿀 수 있어요
+        </div>
+      </div>
+    </div>
+
+    <!-- 회원가입 화면 -->
+    <div id="signupScreen" style="display:none;position:absolute;inset:0;z-index:5100;background:var(--bg);flex-direction:column;align-items:center;justify-content:flex-start;padding:0;overflow-y:auto;">
+      <div style="width:100%;max-width:390px;padding:28px 24px;display:flex;flex-direction:column;gap:0;">
+        <button onclick="closeSignup()" style="align-self:flex-start;border:0;background:none;font-size:24px;color:var(--muted);padding:0 0 12px 0;cursor:pointer;font-family:inherit;">← 뒤로</button>
+        <div style="text-align:center;margin-bottom:24px;">
+          <div style="font-size:48px;margin-bottom:8px;">🌱</div>
+          <div style="font-family:'Gaegu',cursive;font-size:28px;font-weight:700;color:var(--purple);">회원가입</div>
+          <div style="font-size:13px;color:var(--muted);margin-top:4px;font-weight:700;">하루 그림일기와 함께해요</div>
+        </div>
+        <div class="login-card" style="gap:18px;">
+          <div>
+            <div class="login-label">😊 나를 표현하는 이모지 선택</div>
+            <div id="emojiPicker" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;"></div>
+          </div>
+          <div style="height:1px;background:var(--border);border-radius:2px;"></div>
+          <div>
+            <div class="login-label">👤 이름 <span style="color:var(--muted);font-weight:700;font-size:11px;">(로그인에 사용)</span></div>
+            <input class="login-input" id="signupName" type="text" placeholder="실명을 입력해주세요" maxlength="10" autocomplete="off"
+              oninput="document.getElementById('signupError').textContent=''"/>
+          </div>
+          <div>
+            <div class="login-label">✏️ 닉네임 <span style="color:var(--muted);font-weight:700;font-size:11px;">(앱에서 표시되는 이름)</span></div>
+            <input class="login-input" id="signupNick" type="text" placeholder="예: 행복한 하루, 꽃할매 등" maxlength="12" autocomplete="off"
+              oninput="document.getElementById('signupError').textContent=''"/>
+          </div>
+          <div>
+            <div class="login-label">👨‍👩‍👧 보호자 이름 <span style="color:var(--muted);font-weight:700;font-size:11px;">(선택)</span></div>
+            <input class="login-input" id="signupGuardian" type="text" placeholder="예: 딸 김영희, 아들 박민준" maxlength="15" autocomplete="off"/>
+          </div>
+          <div style="height:1px;background:var(--border);border-radius:2px;"></div>
+          <div>
+            <div class="login-label" style="margin-bottom:8px;">🔐 비밀번호 <span style="color:var(--muted);font-weight:700;font-size:11px;">(숫자 4자리)</span></div>
+            <div class="pin-dot-wrap" id="signupPinDots" style="margin-bottom:10px;">
+              <div class="pin-dot" id="sp0"></div><div class="pin-dot" id="sp1"></div>
+              <div class="pin-dot" id="sp2"></div><div class="pin-dot" id="sp3"></div>
+            </div>
+            <div class="pin-numpad">
+              <button class="pin-btn" onclick="spPress('1','signup')">1</button>
+              <button class="pin-btn" onclick="spPress('2','signup')">2</button>
+              <button class="pin-btn" onclick="spPress('3','signup')">3</button>
+              <button class="pin-btn" onclick="spPress('4','signup')">4</button>
+              <button class="pin-btn" onclick="spPress('5','signup')">5</button>
+              <button class="pin-btn" onclick="spPress('6','signup')">6</button>
+              <button class="pin-btn" onclick="spPress('7','signup')">7</button>
+              <button class="pin-btn" onclick="spPress('8','signup')">8</button>
+              <button class="pin-btn" onclick="spPress('9','signup')">9</button>
+              <button class="pin-btn empty"></button>
+              <button class="pin-btn" onclick="spPress('0','signup')">0</button>
+              <button class="pin-btn del" onclick="spDel('signup')">⌫</button>
+            </div>
+          </div>
+          <div>
+            <div class="login-label" style="margin-bottom:8px;">🔐 비밀번호 확인</div>
+            <div class="pin-dot-wrap" id="signupPinDots2" style="margin-bottom:10px;">
+              <div class="pin-dot" id="sp20"></div><div class="pin-dot" id="sp21"></div>
+              <div class="pin-dot" id="sp22"></div><div class="pin-dot" id="sp23"></div>
+            </div>
+            <div class="pin-numpad">
+              <button class="pin-btn" onclick="spPress('1','confirm')">1</button>
+              <button class="pin-btn" onclick="spPress('2','confirm')">2</button>
+              <button class="pin-btn" onclick="spPress('3','confirm')">3</button>
+              <button class="pin-btn" onclick="spPress('4','confirm')">4</button>
+              <button class="pin-btn" onclick="spPress('5','confirm')">5</button>
+              <button class="pin-btn" onclick="spPress('6','confirm')">6</button>
+              <button class="pin-btn" onclick="spPress('7','confirm')">7</button>
+              <button class="pin-btn" onclick="spPress('8','confirm')">8</button>
+              <button class="pin-btn" onclick="spPress('9','confirm')">9</button>
+              <button class="pin-btn empty"></button>
+              <button class="pin-btn" onclick="spPress('0','confirm')">0</button>
+              <button class="pin-btn del" onclick="spDel('confirm')">⌫</button>
+            </div>
+          </div>
+          <div class="login-error" id="signupError"></div>
+          <button class="login-btn" onclick="doSignup()" style="margin-top:4px;">🌱 가입 완료</button>
+        </div>
+        <div style="height:32px;"></div>
+      </div>
+    </div>
+
     <!-- 앱 구동 로딩 화면 -->
-    <div id="app-loading-screen">
+    <div id="app-loading-screen" style="display:none">
       <div class="loading-logo-container">
         <div class="loading-logo">🎨</div>
         <div class="loading-title">하루 그림일기</div>
@@ -2740,22 +2965,25 @@
     </div>
 
     <!-- 헤더 -->
-    <header class="app-header">
+    <header class="app-header" id="appHeader" style="display:none">
       <div class="header-left">
         <div class="haru-logo">🌼</div>
         <div class="header-titles">
           <h1>하루<span style="color:var(--red)">♥</span> 그림일기</h1>
-          <div class="sub"><span class="connected-dot"></span>하루가 기다리고 있어요</div>
+          <div class="sub"><span class="connected-dot"></span><span id="headerUserName">하루가 기다리고 있어요</span></div>
         </div>
       </div>
-      <div class="header-date" id="appHeaderDate">
-        <div style="font-weight:800;font-size:15px">5월 16일</div>
-        <div style="font-size:12px;color:var(--muted)">토요일</div>
+      <div class="header-right" style="display:flex;align-items:center;gap:8px;">
+        <div class="header-date" id="appHeaderDate">
+          <div style="font-weight:800;font-size:15px">5월 16일</div>
+          <div style="font-size:12px;color:var(--muted)">토요일</div>
+        </div>
+        <button class="logout-btn" onclick="doLogout()" title="로그아웃">🚪</button>
       </div>
     </header>
 
     <!-- 메인 -->
-    <main>
+    <main id="appMain" style="display:none">
 
       <!-- ① 하루 홈 (커뮤니티 피드) -->
       <section id="haru" class="screen active" style="position:relative;overflow-y:auto;height:100%;">
@@ -3131,7 +3359,7 @@
     </main>
 
     <!-- FAB: 그림 그리기 (하루 탭에서만 표시) -->
-    <button class="fab-draw-btn" id="fabDrawBtn" onclick="enterDrawMode()" aria-label="그림 그리기">
+    <button class="fab-draw-btn" id="fabDrawBtn" onclick="enterDrawMode()" aria-label="그림 그리기" style="display:none">
       <span class="fab-draw-icon">✏️</span>
       <span class="fab-draw-label">그림 그리기</span>
     </button>
@@ -3153,16 +3381,10 @@
     </div>
 
     <!-- 바텀 네비 -->
-    <nav>
-      <button onclick="showScreen('chatbot',this)">
-        <span class="nav-icon">💬</span><span>챗봇</span>
-      </button>
-      <button class="active" onclick="showScreen('haru',this)">
-        <span class="nav-icon">🌼</span><span>하루</span>
-      </button>
-      <button onclick="showScreen('mydiaries',this)">
-        <span class="nav-icon">📔</span><span>나</span>
-      </button>
+    <nav id="appNav" style="display:none">
+      <button onclick="showScreen('chatbot',this)"><span class="nav-icon">💬</span><span>하루</span></button>
+      <button class="active" onclick="showScreen('haru',this)"><span class="nav-icon">🌼</span><span>우리</span></button>
+      <button onclick="showScreen('mydiaries',this)"><span class="nav-icon">📔</span><span>나</span></button>
     </nav>
 
     <!-- 일기 상세 모달 (채팅내역 포함) -->
@@ -3262,6 +3484,193 @@
   </div>
 
   <script>
+    // ══ 로그인 / 회원가입 ══
+    let currentUser = null;
+
+    function getAccounts() { return JSON.parse(localStorage.getItem('haruAccounts') || '{}') }
+    function saveAccounts(a) { localStorage.setItem('haruAccounts', JSON.stringify(a)) }
+
+    let pinBuffer = '';
+    function updatePinDots() {
+      for (let i = 0; i < 4; i++) {
+        const d = document.getElementById('pd' + i);
+        if (d) d.classList.toggle('filled', i < pinBuffer.length);
+      }
+    }
+    function pinPress(ch) { if (pinBuffer.length >= 4) return; pinBuffer += ch; updatePinDots() }
+    function pinDel() { if (!pinBuffer.length) return; pinBuffer = pinBuffer.slice(0,-1); updatePinDots() }
+    function onLoginNameInput() { pinBuffer = ''; updatePinDots(); document.getElementById('loginError').textContent = '' }
+
+    let loginSaveEnabled = true;
+    (function() {
+      loginSaveEnabled = localStorage.getItem('haruLoginSave') !== 'false';
+      const c = document.getElementById('loginSaveCheck');
+      if (c) c.className = 'login-save-check' + (loginSaveEnabled ? ' on' : '');
+    })();
+    function toggleLoginSave() {
+      loginSaveEnabled = !loginSaveEnabled;
+      const c = document.getElementById('loginSaveCheck');
+      if (c) c.className = 'login-save-check' + (loginSaveEnabled ? ' on' : '');
+      localStorage.setItem('haruLoginSave', String(loginSaveEnabled));
+    }
+
+    function doLogin() {
+      const nameInput = document.getElementById('loginName').value.trim();
+      const errEl = document.getElementById('loginError');
+      if (!nameInput) { errEl.textContent = '이름을 입력해주세요'; return }
+      if (pinBuffer.length < 4) { errEl.textContent = '비밀번호 4자리를 눌러주세요'; return }
+      const accounts = getAccounts();
+      if (!accounts[nameInput]) { errEl.textContent = '등록되지 않은 이름이에요. 회원가입을 먼저 해주세요'; return }
+      if (accounts[nameInput].pin !== pinBuffer) {
+        errEl.textContent = '비밀번호가 맞지 않아요. 다시 눌러주세요';
+        pinBuffer = ''; updatePinDots(); return;
+      }
+      currentUser = { name: nameInput, ...accounts[nameInput] };
+      if (loginSaveEnabled) localStorage.setItem('haruAutoLogin', JSON.stringify({ name: nameInput, pin: pinBuffer }));
+      else localStorage.removeItem('haruAutoLogin');
+      errEl.textContent = '';
+      enterApp();
+    }
+
+    const SIGNUP_EMOJIS = ['🌸','🌺','🌻','🌼','🌷','🍀','🌈','⭐','🎀','🎨','🐶','🐱','🐦','🦋','🐥','🍎','🍰','☕','🏡','🎨'];
+    let signupPin = '', signupPinConfirm = '', selectedEmoji = '🌸';
+
+    function openSignup() {
+      const picker = document.getElementById('emojiPicker');
+      if (picker) picker.innerHTML = SIGNUP_EMOJIS.map(e =>
+        `<button class="emoji-pick-btn${e===selectedEmoji?' selected':''}" onclick="selectEmoji('${e}',this)">${e}</button>`).join('');
+      signupPin = ''; signupPinConfirm = '';
+      updateSpDots('signup'); updateSpDots('confirm');
+      ['signupName','signupNick','signupGuardian'].forEach(id => { const el=document.getElementById(id); if(el) el.value='' });
+      document.getElementById('signupError').textContent = '';
+      const sc = document.getElementById('signupScreen');
+      sc.style.cssText = 'display:flex !important;position:absolute;inset:0;z-index:5100;background:var(--bg);flex-direction:column;align-items:center;justify-content:flex-start;overflow-y:auto;';
+      sc.scrollTop = 0;
+    }
+    function closeSignup() { document.getElementById('signupScreen').style.display = 'none' }
+    function selectEmoji(emoji, btn) {
+      selectedEmoji = emoji;
+      document.querySelectorAll('.emoji-pick-btn').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+    }
+    function updateSpDots(mode) {
+      const buf = mode === 'signup' ? signupPin : signupPinConfirm;
+      const prefix = mode === 'signup' ? 'sp' : 'sp2';
+      for (let i = 0; i < 4; i++) { const d=document.getElementById(prefix+i); if(d) d.classList.toggle('filled', i < buf.length) }
+    }
+    function spPress(ch, mode) {
+      if (mode==='signup') { if(signupPin.length>=4) return; signupPin+=ch; updateSpDots('signup') }
+      else { if(signupPinConfirm.length>=4) return; signupPinConfirm+=ch; updateSpDots('confirm') }
+    }
+    function spDel(mode) {
+      if (mode==='signup') { if(!signupPin.length) return; signupPin=signupPin.slice(0,-1); updateSpDots('signup') }
+      else { if(!signupPinConfirm.length) return; signupPinConfirm=signupPinConfirm.slice(0,-1); updateSpDots('confirm') }
+    }
+    function doSignup() {
+      const errEl = document.getElementById('signupError');
+      const nameVal = document.getElementById('signupName').value.trim();
+      const nickVal = document.getElementById('signupNick').value.trim();
+      const guardianVal = document.getElementById('signupGuardian').value.trim();
+      if (!nameVal) { errEl.textContent = '이름을 입력해주세요'; return }
+      if (!nickVal) { errEl.textContent = '닉네임을 입력해주세요'; return }
+      if (signupPin.length < 4) { errEl.textContent = '비밀번호 4자리를 입력해주세요'; return }
+      if (signupPinConfirm.length < 4) { errEl.textContent = '비밀번호 확인을 입력해주세요'; return }
+      if (signupPin !== signupPinConfirm) { errEl.textContent = '비밀번호가 서로 달라요 🔐'; signupPinConfirm=''; updateSpDots('confirm'); return }
+      const accounts = getAccounts();
+      if (accounts[nameVal]) { errEl.textContent = '이미 사용 중인 이름이에요'; return }
+      accounts[nameVal] = { pin: signupPin, emoji: selectedEmoji, profile: { name: nickVal, guardian: guardianVal } };
+      saveAccounts(accounts);
+      localStorage.setItem(`haruFavorites2_${nameVal}`, JSON.stringify(["강아지","고양이","꽃","집","하트","사람"]));
+      currentUser = { name: nameVal, ...accounts[nameVal] };
+      if (loginSaveEnabled) localStorage.setItem('haruAutoLogin', JSON.stringify({ name: nameVal, pin: signupPin }));
+      closeSignup();
+      enterApp();
+      setTimeout(() => toast(`${nickVal}님, 환영해요! 🌸 그림일기를 시작해볼까요?`), 800);
+    }
+
+    function doLogout() {
+      ['appHeader','appMain','appNav','fabDrawBtn'].forEach(id => {
+        const el = document.getElementById(id); if (el) el.style.display = 'none';
+      });
+      localStorage.removeItem('haruAutoLogin');
+      currentUser = null;
+      pinBuffer = ''; updatePinDots();
+      document.getElementById('loginName').value = '';
+      document.getElementById('loginError').textContent = '';
+      const ls = document.getElementById('loginScreen');
+      ls.style.cssText = ''; ls.style.display = 'flex';
+    }
+
+    function enterApp() {
+      document.getElementById('loginScreen').style.display = 'none';
+      const loadingEl = document.getElementById('app-loading-screen');
+      loadingEl.style.display = 'flex';
+
+      favorites = JSON.parse(localStorage.getItem(userKey('haruFavorites2')) || '["강아지","고양이","꽃","집","하트","사람"]');
+
+      const progressBar = document.getElementById('loadingProgressBar');
+      const statusText = document.getElementById('loadingStatusText');
+      const loadingTexts = ["오늘 하루를 그리는 중...", "포근한 연필을 깎는 중...", "물감 팔레트를 준비하는 중...", "거의 다 준비되었어요!"];
+      let progress = 0, textIndex = 0;
+      const textInterval = setInterval(() => { if(progress<85){textIndex=(textIndex+1)%loadingTexts.length; statusText.textContent=loadingTexts[textIndex]} }, 500);
+      const progressInterval = setInterval(() => {
+        progress += Math.random() * 10 + 3;
+        if (progress >= 100) {
+          progress = 100; clearInterval(progressInterval); clearInterval(textInterval);
+          const dispName = getUserProfile().name || currentUser.name;
+          statusText.textContent = `반가워요, ${dispName}님! ✨`; progressBar.style.width = '100%';
+          setTimeout(() => {
+            loadingEl.style.opacity = '0'; loadingEl.style.transform = 'scale(1.05)';
+            setTimeout(() => {
+              loadingEl.style.display = 'none';
+              document.getElementById('appHeader').style.display = '';
+              document.getElementById('appMain').style.display = '';
+              document.getElementById('appNav').style.display = '';
+              document.getElementById('fabDrawBtn').style.display = '';
+
+              const _prof = getUserProfile();
+              document.getElementById('headerUserName').textContent = (_prof.name || currentUser.name) + '님, 안녕하세요 🌼';
+
+              initDateDisplay();
+              renderFavorites();
+              loadProfile();
+              loadMyDiaries();
+              loadCommunityFeed();
+              refreshHaruPreview();
+              showScreen('haru', document.querySelector('#appNav button:nth-child(2)'));
+              speak(`${currentUser.name}님, 하루 그림일기에 오신 것을 환영합니다.`);
+            }, 500);
+          }, 400);
+        } else { progressBar.style.width = `${progress}%` }
+      }, 70);
+    }
+
+    // 자동 로그인
+    (function checkAutoLogin() {
+      const saved = localStorage.getItem('haruAutoLogin');
+      if (!saved) return;
+      try {
+        const { name, pin } = JSON.parse(saved);
+        const accounts = getAccounts();
+        if (accounts[name] && accounts[name].pin === pin) {
+          document.getElementById('loginName').value = name;
+          pinBuffer = pin; updatePinDots();
+          setTimeout(doLogin, 200);
+        }
+      } catch(e) { localStorage.removeItem('haruAutoLogin') }
+    })();
+
+    // ══ 계정별 스토리지 헬퍼 ══
+    function userKey(key) { return currentUser ? `${key}_${currentUser.name}` : key }
+    function getUserDiaries() { return JSON.parse(localStorage.getItem(userKey('haruDiaries2')) || '[]') }
+    function setUserDiaries(arr) { localStorage.setItem(userKey('haruDiaries2'), JSON.stringify(arr)) }
+    function getDeletedIds() { return JSON.parse(localStorage.getItem(userKey('haruDeletedDiaries')) || '[]') }
+    function addDeletedId(id) { const ids=getDeletedIds(); if(!ids.includes(id)){ids.push(id); localStorage.setItem(userKey('haruDeletedDiaries'), JSON.stringify(ids))} }
+    function getUserProfile() { return JSON.parse(localStorage.getItem(userKey('haruProfile')) || '{}') }
+    function setUserProfile(obj) { localStorage.setItem(userKey('haruProfile'), JSON.stringify(obj)) }
+    function getUserChatHistory() { return JSON.parse(localStorage.getItem(userKey('haruChatHistory')) || '{}') }
+    function setUserChatHistory(obj) { localStorage.setItem(userKey('haruChatHistory'), JSON.stringify(obj)) }
+
     // ── Supabase 연결 ──
     const SUPABASE_URL = 'https://nxinbugzcvpahjjejyzv.supabase.co'
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im54aW5idWd6Y3ZwYWhqamVqeXp2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxNDY4MDUsImV4cCI6MjA5NDcyMjgwNX0.-ro7X9dMxxJJNartwY_npgaFn_qG6qAC55oXXWXfF2w'
@@ -3272,7 +3681,6 @@
       const { error } = await window.supabase.from('diaries').select('*').limit(1)
       if (error) console.log('❌ 연결 실패:', error.message)
       else console.log('✅ Supabase 연결 성공!')
-      loadMyDiaries();
     }
     initSupabase()
 
@@ -3280,7 +3688,7 @@
     let outlines = [];
     async function loadOutlines() {
       try {
-        const res = await fetch('/api/outlines');
+        const res = await fetch('http://localhost:8000/api/outlines');
         const data = await res.json();
         outlines = data.outlines.map(o => [o.name, o.category, o.path]);
         renderFavorites();
@@ -3326,14 +3734,14 @@
       return decodeURIComponent(url.slice(idx + marker.length).split("?")[0]);
     }
     function removeFromLocalStorage(diary) {
-      const items = JSON.parse(localStorage.getItem("haruDiaries2") || "[]");
+      const items = getUserDiaries();
       const next = items.filter(item => {
         if (diary.id && item.id === diary.id) return false;
         if (diary.image && item.image === diary.image) return false;
         if (diary.date && item.date === diary.date && (item.text || "") === (diary.text || "")) return false;
         return true;
       });
-      localStorage.setItem("haruDiaries2", JSON.stringify(next));
+      setUserDiaries(next);
     }
     function isSupabaseDiaryId(id) { return id && !String(id).startsWith("local-"); }
     function mergeDiaries(remoteItems, localItems) {
@@ -3350,14 +3758,14 @@
       listEl.innerHTML = '<p class="my-diaries-loading">그림일기를 불러오는 중...</p>';
       emptyEl.hidden = true;
       let remoteItems = [];
-      const localItems = mapLocalDiaries(JSON.parse(localStorage.getItem("haruDiaries2") || "[]"));
+      const localItems = mapLocalDiaries(getUserDiaries());
       if (window.supabase) {
         const { data, error } = await window.supabase.from("diaries").select("id,drawing_url,text_content,privacy,diary_date,created_at").order("created_at", { ascending: false }).limit(50);
         if (!error && data) remoteItems = mapDbDiaries(data);
         else if (error) console.warn("일기 불러오기 실패:", error.message);
       }
       myDiaries = remoteItems.length ? mergeDiaries(remoteItems, localItems) : localItems;
-      const excluded = JSON.parse(localStorage.getItem("haruDeletedDiaries") || "[]");
+      const excluded = getDeletedIds();
       myDiaries = myDiaries.filter(d => !excluded.includes(d.id));
       renderMyDiaries();
       updateBookSummary();
@@ -3406,7 +3814,15 @@
       const diary = myDiaries[index];
       if (!diary) return;
       activeDiaryIndex = index;
-      document.getElementById("diaryModalImg").src = diary.image || "";
+      const modalImg = document.getElementById("diaryModalImg");
+      if (diary.image) {
+        modalImg.style.display = '';
+        modalImg.src = diary.image;
+        modalImg.onerror = () => { modalImg.style.display = 'none'; };
+      } else {
+        modalImg.style.display = 'none';
+        modalImg.src = '';
+      }
       document.getElementById("diaryModalDate").textContent = diary.dateLabel;
       document.getElementById("diaryModalText").textContent = diary.text || "(내용 없음)";
       document.getElementById("diaryModalPrivacy").textContent = diary.privacy;
@@ -3427,7 +3843,7 @@
       msgsEl.style.display = 'none';
       if (toggleBtn) toggleBtn.textContent = '펼치기';
 
-      const allHistory = JSON.parse(localStorage.getItem('haruChatHistory') || '{}');
+      const allHistory = getUserChatHistory();
       const msgs = diaryId ? (allHistory[String(diaryId)] || []) : [];
 
       if (!msgs.length) {
@@ -3469,10 +3885,7 @@
       if (!confirm("이 그림일기를 지울까요?\n지우면 다시 되돌릴 수 없어요.")) return;
       toast("지우는 중이에요...");
       try {
-        if (diary.id) {
-          const excluded = JSON.parse(localStorage.getItem("haruDeletedDiaries") || "[]");
-          if (!excluded.includes(diary.id)) { excluded.push(diary.id); localStorage.setItem("haruDeletedDiaries", JSON.stringify(excluded)); }
-        }
+        if (diary.id) { addDeletedId(diary.id) }
         removeFromLocalStorage(diary);
         closeDiaryDetail();
         await loadMyDiaries();
@@ -3715,6 +4128,7 @@
         btn.classList.remove("recording");
         const said = e.results[0][0].transcript.trim().replace(/[.,!?。、·。]/g, '').trim();
         toast(`"${said}" 검색 중... 🔍`);
+        // 검색창에 인식된 단어 설정 후 시트 열기 (기존 + Quick Draw 결과 동시 표시)
         const searchEl = document.getElementById("outlineSearch");
         if (searchEl) searchEl.value = said;
         openOutlineSheet();
@@ -3736,12 +4150,12 @@
     // ── 즐겨찾기 ──
     function addFavorite(name) {
       favorites = [name, ...favorites.filter(x => x !== name)].slice(0, 8);
-      localStorage.setItem("haruFavorites2", JSON.stringify(favorites)); renderFavorites();
+      localStorage.setItem(userKey("haruFavorites2"), JSON.stringify(favorites)); renderFavorites();
     }
     function toggleFavorite(name, e) {
       e.stopPropagation();
       favorites = favorites.includes(name) ? favorites.filter(x => x !== name) : [name, ...favorites].slice(0, 8);
-      localStorage.setItem("haruFavorites2", JSON.stringify(favorites)); renderOutlines(); renderFavorites();
+      localStorage.setItem(userKey("haruFavorites2"), JSON.stringify(favorites)); renderOutlines(); renderFavorites();
     }
 
     // ★ Doc2: 큰 사이즈 즐겨찾기 카드 렌더링
@@ -3762,7 +4176,7 @@
     }
 
     // ── Quick Draw 연동 ──
-    const _QD_API = '/api/quickdraw';
+    const _QD_API = 'http://localhost:8000/api/quickdraw';
     let _qdDrawings = [];
     let _qdWord = '';
     let _qdTimer = null;
@@ -3813,7 +4227,7 @@
         const res = await fetch(`${_QD_API}?ko=${encodeURIComponent(q)}&n=6`);
         const data = await res.json();
         if (!res.ok || !data.drawings?.length) {
-          grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:14px;color:var(--muted);font-size:13px;">"${escapeHtml(q)}" Quick Draw 결과 없음</div>`;
+          grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:14px;color:var(--muted);font-size:13px;">"${q}" Quick Draw 결과 없음</div>`;
           return;
         }
         _qdDrawings = data.drawings;
@@ -3871,7 +4285,6 @@
       speak(`Quick Draw ${_qdWord} 윤곽선을 배치해보세요`);
     }
 
-
     // ★ Doc2: 바텀시트 열기/닫기
     function openOutlineSheet() {
       renderOutlines();
@@ -3887,7 +4300,7 @@
     function showScreen(id, btn) {
       document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
       document.getElementById(id).classList.add("active");
-      if (btn) { document.querySelectorAll("nav button").forEach(b => b.classList.remove("active")); btn.classList.add("active"); }
+      if (btn) { document.querySelectorAll("#appNav button").forEach(b => b.classList.remove("active")); btn.classList.add("active"); }
       if (id === "mydiaries" || id === "community" || id === "book") loadMyDiaries();
       if (id === "mydiaries") loadProfile();
       if (id === "haru") refreshHaruPreview();
@@ -3907,7 +4320,7 @@
         wrap.innerHTML = `<div class="haru-today-label">✏️ 그리던 그림</div><div class="haru-today-card" onclick="enterDrawMode()"><div class="haru-today-img"><img src="${dataUrl}" alt="그리던 그림"></div><div class="haru-today-footer"><span class="haru-today-status">계속 그리기</span><span class="haru-today-action">탭하면 이어 그릴 수 있어요 →</span></div></div>`;
         return;
       }
-      const saved = JSON.parse(localStorage.getItem('haruDiaries2') || '[]');
+      const saved = getUserDiaries();
       const todayStr = new Date().toISOString().split('T')[0];
       const todayDiary = saved.find(d => (d.date || '').startsWith(todayStr));
       if (todayDiary) {
@@ -3989,7 +4402,7 @@
       const input = document.getElementById('commentInput');
       const text = input.value.trim();
       if (!text || !_currentPostId) return;
-      const profile = JSON.parse(localStorage.getItem('haruProfile') || '{}');
+      const profile = getUserProfile();
       const list = _getComments(_currentPostId);
       list.push({author: profile.name || '나', avatar: '😊', text, time: '방금 전'});
       _saveComments(_currentPostId, list);
@@ -4081,21 +4494,22 @@
     function updateCharCount() { document.getElementById("charCount").textContent = document.getElementById("diaryText").value.length; }
 
     // ── 챗봇 대화 ──
+    const _CHAT_API = 'http://localhost:8000/api/chat';
     let _chatDiaryText = '';
     let _sessionHistory = []; // 세션 내 대화 히스토리 (메모리)
 
     function _saveChatMsg(diaryId, role, text) {
       if (!diaryId) return;
-      const all = JSON.parse(localStorage.getItem('haruChatHistory') || '{}');
+      const all = getUserChatHistory();
       const key = String(diaryId);
       if (!all[key]) all[key] = [];
       const time = new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
-      all[key].push({ role, content: text, time });
+      all[key].push({ role, text, time });
       if (all[key].length > 50) all[key] = all[key].slice(-50);
-      localStorage.setItem('haruChatHistory', JSON.stringify(all));
+      setUserChatHistory(all);
     }
 
-    async function startChatbotOnSavedDiary(diaryText, diaryId, imageDataUrl) {
+    function startChatbotOnSavedDiary(diaryText, diaryId, imageDataUrl) {
       currentChatDiaryId = diaryId || null;
       _chatDiaryText = diaryText || '';
       _sessionHistory = [];
@@ -4116,38 +4530,6 @@
       speak(greetingPlain);
       _sessionHistory.push({ role: 'assistant', content: greetingPlain });
       _saveChatMsg(currentChatDiaryId, 'assistant', greetingPlain);
-
-      // 인사 후 AI가 자동으로 대화 시작
-      await _haruAutoOpen(box);
-    }
-
-    async function _haruAutoOpen(box) {
-      await new Promise(r => setTimeout(r, 1200));
-      const typingId = `typing_auto_${Date.now()}`;
-      box.innerHTML += `<div class="msg ai" id="${typingId}" style="opacity:0.55">하루가 생각 중이에요... 🌸</div>`;
-      box.scrollTop = box.scrollHeight;
-      try {
-        const res = await fetch('/api/chat', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            message: '일기 내용을 보고 어르신께 따뜻한 질문 하나만 자연스럽게 건네줘. 짧게.',
-            diaryText: _chatDiaryText,
-            history: _sessionHistory,
-          }),
-        });
-        const data = await res.json();
-        document.getElementById(typingId)?.remove();
-        if (data.reply) {
-          box.innerHTML += `<div class="msg ai">${escapeHtml(data.reply)}</div>`;
-          box.scrollTop = box.scrollHeight;
-          speak(data.reply);
-          _sessionHistory.push({ role: 'assistant', content: data.reply });
-          _saveChatMsg(currentChatDiaryId, 'assistant', data.reply);
-        }
-      } catch {
-        document.getElementById(typingId)?.remove();
-      }
     }
 
     async function sendChatbot() {
@@ -4160,16 +4542,19 @@
       input.disabled = true;
       box.scrollTop = box.scrollHeight;
 
+      // 세션 히스토리에 user 메시지 추가
       _sessionHistory.push({ role: 'user', content: msg });
       _saveChatMsg(currentChatDiaryId, 'user', msg);
 
+      // 타이핑 표시
       const typingId = `typing_${Date.now()}`;
       box.innerHTML += `<div class="msg ai" id="${typingId}" style="opacity:0.55">하루가 생각 중이에요... 🌸</div>`;
       box.scrollTop = box.scrollHeight;
 
       try {
+        // 현재 메시지를 제외한 앞 대화를 히스토리로 전달
         const history = _sessionHistory.slice(0, -1);
-        const res = await fetch('/api/chat', {
+        const res = await fetch(_CHAT_API, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ message: msg, diaryText: _chatDiaryText, history }),
@@ -4214,8 +4599,8 @@
         const { data: savedDiary, error: diaryError } = await window.supabase.from('diaries').insert({ drawing_url: urlData.publicUrl, text_content: document.getElementById('diaryText').value, privacy, diary_date: new Date().toISOString().split('T')[0] }).select('id').single();
         if (diaryError) throw diaryError;
         const item = { id: savedDiary?.id, date: new Date().toISOString(), text: document.getElementById('diaryText').value, privacy, image: urlData.publicUrl };
-        const items = JSON.parse(localStorage.getItem('haruDiaries2') || '[]');
-        items.unshift(item); localStorage.setItem('haruDiaries2', JSON.stringify(items.slice(0, 50)));
+        const items = getUserDiaries();
+        items.unshift(item); setUserDiaries(items.slice(0, 50));
         toast('그림일기를 저장했어요 💾'); speak('그림일기를 저장했어요. 오늘도 수고하셨어요!');
         await loadMyDiaries();
         startChatbotOnSavedDiary(document.getElementById('diaryText').value, savedDiary?.id, dataUrl);
@@ -4402,13 +4787,13 @@
     }
 
     // ── 초기화 ──
-    navBtns = document.querySelectorAll("nav button");
+    navBtns = document.querySelectorAll("#appNav button");
     document.getElementById('commentInput').addEventListener('keydown', e => { if (e.key === 'Enter') submitComment(); });
     _initReactions();
 
     // ── 프로필 관리 ──
     function loadProfile() {
-      const profile = JSON.parse(localStorage.getItem('haruProfile') || '{}');
+      const profile = getUserProfile();
       const nameEl = document.getElementById('profileNameEl');
       const img = document.getElementById('profilePhotoImg');
       const emoji = document.getElementById('profilePhotoEmoji');
@@ -4438,9 +4823,9 @@
           const sx = (src.width - min) / 2, sy = (src.height - min) / 2;
           c.drawImage(src, sx, sy, min, min, 0, 0, size, size);
           const dataUrl = cvs.toDataURL('image/jpeg', 0.82);
-          const profile = JSON.parse(localStorage.getItem('haruProfile') || '{}');
+          const profile = getUserProfile();
           profile.photo = dataUrl;
-          localStorage.setItem('haruProfile', JSON.stringify(profile));
+          setUserProfile(profile);
           loadProfile(); toast('프로필 사진을 바꿨어요 📷');
         };
         src.src = ev.target.result;
@@ -4451,7 +4836,7 @@
     function startEditName() {
       const row = document.getElementById('profileNameEditRow');
       const input = document.getElementById('profileNameInput');
-      const profile = JSON.parse(localStorage.getItem('haruProfile') || '{}');
+      const profile = getUserProfile();
       input.value = profile.name || '';
       row.hidden = false; input.focus(); input.select();
     }
@@ -4464,15 +4849,14 @@
       const input = document.getElementById('profileNameInput');
       const name = input.value.trim();
       if (!name) { toast('닉네임을 입력해주세요 ✏️'); return; }
-      const profile = JSON.parse(localStorage.getItem('haruProfile') || '{}');
+      const profile = getUserProfile();
       profile.name = name;
-      localStorage.setItem('haruProfile', JSON.stringify(profile));
+      setUserProfile(profile);
       document.getElementById('profileNameEditRow').hidden = true;
       loadProfile(); toast(`닉네임을 "${name}"으로 저장했어요 ✨`);
     }
 
-    // 날짜 표시
-    (function () {
+    function initDateDisplay() {
       const days = ['일', '월', '화', '수', '목', '금', '토'];
       const now = new Date();
       const m = now.getMonth() + 1, d = now.getDate(), w = days[now.getDay()];
@@ -4483,38 +4867,14 @@
       const greetings = ["오늘도 소중하고 따뜻한 하루예요 🌸", "당신의 고운 웃음이 세상을 밝혀요 😊", "오늘 하루도 건강하고 평안하세요 🍀", "내 마음속 예쁜 추억을 그리는 날 🎨", "꽃처럼 활짝 피어나는 하루되세요 🌷", "당신의 아름다운 오늘을 응원합니다 ☀️", "오늘 하루도 작은 행복이 가득하길 💕", "차 한 잔의 여유와 포근한 하루 ☕", "참 좋은 날, 함께라서 더 행복해요 💐", "오늘도 당신의 고운 손길을 응원해요 ✨"];
       const gEl = document.getElementById('haruGreetingMsg');
       if (gEl) gEl.textContent = greetings[now.getDate() % greetings.length];
-    })();
-    refreshHaruPreview();
-    loadProfile();
+    }
 
-    // PWA 서비스워커
+    // PWA 서비스워커 (로그인 전에 등록)
     if ("serviceWorker" in navigator) {
       const isLocal = ["localhost", "127.0.0.1", "::1"].includes(location.hostname);
       if (isLocal) { navigator.serviceWorker.getRegistrations().then(r => r.forEach(reg => reg.unregister())).catch(() => { }); if ("caches" in window) caches.keys().then(keys => keys.forEach(k => caches.delete(k))).catch(() => { }); }
       else { navigator.serviceWorker.register("./service-worker.js").catch(() => { }); }
     }
-
-    // ── 앱 로딩 화면 ──
-    (function () {
-      const progressBar = document.getElementById('loadingProgressBar');
-      const statusText = document.getElementById('loadingStatusText');
-      const loadingScreen = document.getElementById('app-loading-screen');
-      const loadingTexts = ["오늘 하루를 그리는 중...", "포근한 연필을 깎는 중...", "물감 팔레트를 준비하는 중...", "거의 다 준비되었어요!"];
-      let progress = 0, textIndex = 0;
-      const textInterval = setInterval(() => { if (progress < 85) { textIndex = (textIndex + 1) % loadingTexts.length; statusText.textContent = loadingTexts[textIndex]; } }, 600);
-      const progressInterval = setInterval(() => {
-        progress += Math.random() * 8 + 2;
-        if (progress >= 100) {
-          progress = 100; clearInterval(progressInterval); clearInterval(textInterval);
-          statusText.textContent = "반가워요! ✨"; progressBar.style.width = '100%';
-          setTimeout(() => {
-            loadingScreen.style.opacity = '0'; loadingScreen.style.transform = 'scale(1.05)';
-            speak("하루 그림일기에 오신 것을 환영합니다.");
-            setTimeout(() => { loadingScreen.style.display = 'none'; }, 500);
-          }, 400);
-        } else { progressBar.style.width = `${progress}%`; }
-      }, 80);
-    })();
   </script>
 </body>
 

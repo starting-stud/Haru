@@ -362,7 +362,9 @@ export default function DrawScreen({ navigation }) {
               overlay={overlay}
             />
             {!strokes.length && !overlay && (
-              <Text style={styles.hint} pointerEvents="none">오늘의 그림을 그려보세요 ✏️</Text>
+              <View style={styles.hintWrap} pointerEvents="none">
+                <Text style={styles.hint}>오늘의 그림을 그려보세요 ✏️</Text>
+              </View>
             )}
             <TouchableOpacity style={styles.expandBtn} onPress={enterFullscreen}>
               <Text style={styles.expandBtnText}>⛶</Text>
@@ -655,7 +657,8 @@ const styles = StyleSheet.create({
   micEmoji: { fontSize: 20 },
   micLabel: { fontSize: 8, color: COLORS.white, fontWeight: '800' },
   canvas: { backgroundColor: COLORS.white, alignItems: 'center', justifyContent: 'center' },
-  hint: { fontSize: 15, color: COLORS.muted, position: 'absolute' },
+  hintWrap: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' },
+  hint: { fontSize: 15, color: COLORS.muted, textAlign: 'center' },
   toolSection: { marginHorizontal: 16, marginTop: 12 },
   paletteToggle: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: COLORS.white, borderRadius: 14, borderWidth: 1.5, borderColor: COLORS.border, paddingHorizontal: 14, paddingVertical: 10 },
   currentColor: { width: 22, height: 22, borderRadius: 11 },

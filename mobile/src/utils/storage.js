@@ -1,44 +1,38 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../lib/supabase';
 
-// ── 일기 (Supabase) ───────────────────────────────────────────────
+// ── 현재 로그인 유저 ─────────────────────────────────────────────
+
+async function getCurrentUserName() {
+  const raw = await AsyncStorage.getItem('haruAutoLogin');
+  if (!raw) return null;
+  return JSON.parse(raw).name;
+}
+
+function diaryKey(userName) {
+  return `haruDiaries_${userName}`;
+}
+
+// ── 일기 (AsyncStorage + Supabase Storage) ────────────────────────
 
 export async function getDiaries() {
-  const { data, error } = await supabase
-    .from('diaries')
-    .select('*')
-    .order('created_at', { ascending: false });
-  if (error) throw error;
-  return (data || []).map(d => ({
-    id: d.id,
-    date: d.diary_date,
-    text: d.text_content,
-    image: d.drawing_url,
-    privacy: d.privacy,
-    created_at: d.created_at,
-  }));
+  const userName = await getCurrentUserName();
+  if (!userName) return [];
+  const raw = await AsyncStorage.getItem(diaryKey(userName));
+  return raw ? JSON.parse(raw) : [];
 }
 
 export async function saveDiary(diary) {
-  // 1단계: 일기 레코드 삽입 → Supabase UUID 획득
-  const { data: inserted, error: insertErr } = await supabase
-    .from('diaries')
-    .insert({
-      text_content: diary.text || '',
-      diary_date: new Date(diary.date).toISOString().split('T')[0],
-      privacy: diary.privacy || '비공개',
-    })
-    .select()
-    .single();
+  const userName = await getCurrentUserName();
+  if (!userName) throw new Error('로그인 필요');
 
-  if (insertErr) throw insertErr;
-  const id = inserted.id;
+  const id = `diary_${Date.now()}`;
 
-  // 2단계: 이미지 업로드
-  let drawing_url = null;
-  if (diary.image) {
+  // 이미지 → Supabase Storage 업로드
+  let imageUrl = diary.image || null;
+  if (diary.image && diary.image.startsWith('file')) {
     try {
-      const path = `diary_${id}.png`;
+      const path = `${id}.png`;
       const response = await fetch(diary.image);
       const blob = await response.blob();
       const { error: uploadErr } = await supabase.storage
@@ -46,25 +40,65 @@ export async function saveDiary(diary) {
         .upload(path, blob, { contentType: 'image/png', upsert: true });
       if (!uploadErr) {
         const { data } = supabase.storage.from('diary-images').getPublicUrl(path);
-        drawing_url = data.publicUrl;
-        await supabase.from('diaries').update({ drawing_url }).eq('id', id);
+        imageUrl = data.publicUrl;
       }
     } catch {}
   }
 
-  return {
+  // 공개 일기는 Supabase diaries 테이블에도 동기화 (커뮤니티 피드용)
+  let remoteId = null;
+  if (diary.privacy === '공개') {
+    try {
+      const { data } = await supabase.from('diaries').insert({
+        text_content: diary.text || '',
+        diary_date: new Date(diary.date).toISOString().split('T')[0],
+        privacy: '공개',
+        drawing_url: imageUrl,
+      }).select('id').single();
+      if (data) remoteId = data.id;
+    } catch {}
+  }
+
+  const saved = {
     id,
+    remoteId,
     date: diary.date,
     text: diary.text || '',
-    image: drawing_url,
+    image: imageUrl,
     privacy: diary.privacy || '비공개',
+    created_at: new Date().toISOString(),
   };
+
+  // AsyncStorage에 저장
+  const existing = await getDiaries();
+  existing.unshift(saved);
+  await AsyncStorage.setItem(diaryKey(userName), JSON.stringify(existing));
+
+  return saved;
 }
 
 export async function deleteDiary(id) {
-  await supabase.storage.from('diary-images').remove([`diary_${id}.png`]);
-  const { error } = await supabase.from('diaries').delete().eq('id', id);
-  if (error) throw error;
+  const userName = await getCurrentUserName();
+  if (!userName) return;
+
+  const existing = await getDiaries();
+  const target = existing.find(d => d.id === id);
+
+  // Supabase Storage 이미지 삭제
+  try {
+    await supabase.storage.from('diary-images').remove([`${id}.png`]);
+  } catch {}
+
+  // 공개 일기면 Supabase diaries 테이블에서도 삭제
+  if (target?.remoteId) {
+    try {
+      await supabase.from('diaries').delete().eq('id', target.remoteId);
+    } catch {}
+  }
+
+  // AsyncStorage에서 삭제
+  const updated = existing.filter(d => d.id !== id);
+  await AsyncStorage.setItem(diaryKey(userName), JSON.stringify(updated));
 }
 
 // ── 즐겨찾기 (AsyncStorage) ───────────────────────────────────────
