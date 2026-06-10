@@ -1,12 +1,12 @@
 import React, { useRef, useState, forwardRef, useCallback, useEffect } from 'react';
-import { Canvas, Path } from '@shopify/react-native-skia';
+import Svg, { Path } from 'react-native-svg';
 import { GestureDetector, Gesture } from 'react-native-gesture-handler';
 
 const CompletedStrokes = React.memo(({ strokes }) => (
   <>
     {strokes.map((s, i) => (
-      <Path key={i} path={s.svgPath} color={s.color}
-        style="stroke" strokeWidth={s.strokeWidth} strokeCap="round" strokeJoin="round" />
+      <Path key={i} d={s.svgPath} stroke={s.color}
+        strokeWidth={s.strokeWidth} fill="none" strokeLinecap="round" strokeLinejoin="round" />
     ))}
   </>
 ), (prev, next) => prev.strokes === next.strokes);
@@ -64,13 +64,13 @@ const DrawCanvas = forwardRef(({ width, height, strokes, onStrokeAdded, tool, co
 
   return (
     <GestureDetector gesture={gesture}>
-      <Canvas style={{ width, height, backgroundColor: '#FFFFFF' }}>
+      <Svg width={width} height={height} style={{ backgroundColor: '#FFFFFF' }}>
         <CompletedStrokes strokes={strokes} />
         {currentPath ? (
-          <Path path={currentPath} color={strokeColor}
-            style="stroke" strokeWidth={strokeWidth} strokeCap="round" strokeJoin="round" />
+          <Path d={currentPath} stroke={strokeColor}
+            strokeWidth={strokeWidth} fill="none" strokeLinecap="round" strokeLinejoin="round" />
         ) : null}
-      </Canvas>
+      </Svg>
     </GestureDetector>
   );
 });
