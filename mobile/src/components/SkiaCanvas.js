@@ -1,103 +1,87 @@
-import React, { useRef, useState, forwardRef } from 'react';
-import { StyleSheet } from 'react-native';
-import Svg, { Path } from 'react-native-svg';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import React, { useRef, useEffect, forwardRef, useCallback } from 'react';
+import { Canvas, Path } from '@shopify/react-native-skia';
+import { GestureDetector, Gesture } from 'react-native-gesture-handler';
+import { useSharedValue, runOnJS } from 'react-native-reanimated';
 
-// 포인트 배열 → SVG path (선형, 보정 없음)
-function makePathD(points) {
-  if (!points || points.length < 2) return '';
-  let d = `M${points[0].x.toFixed(1)},${points[0].y.toFixed(1)}`;
-  for (let i = 1; i < points.length; i++) {
-    d += ` L${points[i].x.toFixed(1)},${points[i].y.toFixed(1)}`;
-  }
-  return d;
-}
-
-// 완성된 획들 - memo로 현재 획 그릴 때 리렌더 차단
+// 완성된 획 목록 - strokes 바뀔 때만 리렌더
 const CompletedStrokes = React.memo(({ strokes }) => (
   <>
     {strokes.map((s, i) => (
-      <Path key={i} d={makePathD(s.points)} stroke={s.color}
-        strokeWidth={s.strokeWidth} fill="none"
-        strokeLinecap="round" strokeLinejoin="round" />
+      <Path key={i} path={s.svgPath} color={s.color}
+        style="stroke" strokeWidth={s.strokeWidth} strokeCap="round" strokeJoin="round" />
     ))}
   </>
 ), (prev, next) => prev.strokes === next.strokes);
 
-const DrawCanvas = forwardRef(({
-  width, height, strokes, onStrokeAdded,
-  toolRef, colorRef,
-}, ref) => {
-  const currentStrokeRef = useRef(null);
-  const [, forceUpdate] = useState(0);
-  const rafRef = useRef(null);
+const DrawCanvas = forwardRef(({ width, height, strokes, onStrokeAdded, tool, color }, ref) => {
+  // UI thread SharedValue: 그리는 중인 획의 SVG path 문자열
+  const currentPath = useSharedValue('');
+  const lastPt = useSharedValue({ x: -1, y: -1 });
 
-  const scheduleRender = () => {
-    if (rafRef.current) return;
-    rafRef.current = requestAnimationFrame(() => {
-      forceUpdate(n => n + 1);
-      rafRef.current = null;
-    });
-  };
+  // 획 완료 시 JS thread에 전달할 도구 정보
+  const strokeInfoRef = useRef({ color: '#3F3328', strokeWidth: 5 });
+  useEffect(() => {
+    strokeInfoRef.current = {
+      color: tool === 'eraser' ? '#FFFFFF' : color,
+      strokeWidth: tool === 'eraser' ? 28 : tool === 'thick' ? 10 : 5,
+    };
+  }, [tool, color]);
 
+  // onStrokeAdded는 매 렌더마다 새로 만들어질 수 있으므로 ref로 안정화
+  const onStrokeAddedRef = useRef(onStrokeAdded);
+  onStrokeAddedRef.current = onStrokeAdded;
+
+  // stable - 빈 의존성 배열, ref를 통해 항상 최신 콜백 호출
+  const handleEnd = useCallback((svgPath) => {
+    if (!svgPath) return;
+    onStrokeAddedRef.current({ svgPath, ...strokeInfoRef.current });
+  }, []);
+
+  // UI thread에서 직접 실행되는 제스처 (runOnJS 없음)
   const gesture = Gesture.Pan()
     .minDistance(0)
-    .runOnJS(true)
     .onBegin((e) => {
-      const t = toolRef.current;
-      const c = colorRef.current;
-      currentStrokeRef.current = {
-        color: t === 'eraser' ? '#FFFFFF' : c,
-        strokeWidth: t === 'eraser' ? 28 : t === 'thick' ? 10 : 5,
-        points: [{ x: e.x, y: e.y }],
-      };
-      scheduleRender();
+      'worklet';
+      currentPath.value = `M${e.x.toFixed(1)},${e.y.toFixed(1)}`;
+      lastPt.value = { x: e.x, y: e.y };
     })
     .onUpdate((e) => {
-      if (!currentStrokeRef.current) return;
-      const pts = currentStrokeRef.current.points;
-      if (pts.length > 0) {
-        const last = pts[pts.length - 1];
-        // 점프 필터
-        if (Math.abs(e.x - last.x) > 60 || Math.abs(e.y - last.y) > 60) return;
-        // 너무 가까운 점 건너뜀 (과도한 점 생성 방지)
-        const dx = e.x - last.x, dy = e.y - last.y;
-        if (dx * dx + dy * dy < 4) return;
-      }
-      pts.push({ x: e.x, y: e.y });
-      scheduleRender();
+      'worklet';
+      const last = lastPt.value;
+      if (Math.abs(e.x - last.x) > 60 || Math.abs(e.y - last.y) > 60) return;
+      const dx = e.x - last.x, dy = e.y - last.y;
+      if (dx * dx + dy * dy < 4) return;
+      lastPt.value = { x: e.x, y: e.y };
+      currentPath.value = currentPath.value + ` L${e.x.toFixed(1)},${e.y.toFixed(1)}`;
     })
     .onEnd(() => {
-      if (rafRef.current) { cancelAnimationFrame(rafRef.current); rafRef.current = null; }
-      if (currentStrokeRef.current) {
-        const stroke = currentStrokeRef.current;
-        currentStrokeRef.current = null;
-        onStrokeAdded(stroke);
-        forceUpdate(n => n + 1);
-      }
+      'worklet';
+      const p = currentPath.value;
+      currentPath.value = '';
+      lastPt.value = { x: -1, y: -1 };
+      if (p) runOnJS(handleEnd)(p);
     })
     .onFinalize(() => {
-      if (rafRef.current) { cancelAnimationFrame(rafRef.current); rafRef.current = null; }
-      if (currentStrokeRef.current) {
-        const stroke = currentStrokeRef.current;
-        currentStrokeRef.current = null;
-        onStrokeAdded(stroke);
-        forceUpdate(n => n + 1);
+      'worklet';
+      const p = currentPath.value;
+      if (p) {
+        currentPath.value = '';
+        lastPt.value = { x: -1, y: -1 };
+        runOnJS(handleEnd)(p);
       }
     });
 
-  const cur = currentStrokeRef.current;
+  const strokeColor = tool === 'eraser' ? '#FFFFFF' : color;
+  const strokeWidth = tool === 'eraser' ? 28 : tool === 'thick' ? 10 : 5;
 
   return (
     <GestureDetector gesture={gesture}>
-      <Svg width={width} height={height} style={{ backgroundColor: '#FFFFFF' }}>
+      <Canvas style={{ width, height, backgroundColor: '#FFFFFF' }}>
         <CompletedStrokes strokes={strokes} />
-        {cur && (
-          <Path d={makePathD(cur.points)} stroke={cur.color}
-            strokeWidth={cur.strokeWidth} fill="none"
-            strokeLinecap="round" strokeLinejoin="round" />
-        )}
-      </Svg>
+        {/* currentPath는 SharedValue → Skia가 UI thread에서 직접 업데이트 */}
+        <Path path={currentPath} color={strokeColor}
+          style="stroke" strokeWidth={strokeWidth} strokeCap="round" strokeJoin="round" />
+      </Canvas>
     </GestureDetector>
   );
 });

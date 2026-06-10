@@ -7,7 +7,7 @@ import Svg, { Path, G } from 'react-native-svg';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import ViewShot from 'react-native-view-shot';
 import * as ScreenOrientation from 'expo-screen-orientation';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useAudioRecorder, AudioModule, RecordingPresets } from 'expo-audio';
 import * as Speech from 'expo-speech';
 import { COLORS, API_BASE } from '../constants/theme';
@@ -21,14 +21,15 @@ const CANVAS_H = Math.round(CANVAS_W * 9 / 16);
 const FULL_W = SW;
 const FULL_H = SH - 120; // 상단 툴바 + 하단 버튼 공간 제외
 
-// 획 좌표를 캔버스 크기에 맞게 스케일
+// SVG path 문자열의 좌표를 캔버스 크기에 맞게 스케일
 function scaleStrokes(strokes, fromW, fromH, toW, toH) {
+  const scX = toW / fromW;
+  const scY = toH / fromH;
   return strokes.map(s => ({
     ...s,
-    points: s.points.map(p => ({
-      x: p.x * toW / fromW,
-      y: p.y * toH / fromH,
-    })),
+    svgPath: s.svgPath.replace(/(-?[\d.]+),(-?[\d.]+)/g, (_, x, y) =>
+      `${(parseFloat(x) * scX).toFixed(1)},${(parseFloat(y) * scY).toFixed(1)}`
+    ),
   }));
 }
 
@@ -40,11 +41,11 @@ const TOOLS = [
 ];
 const CATEGORIES = ['즐겨찾기', '전체', '자연', '동물', '생활', '사람', '음식', '감정'];
 
-// 완성된 획 목록 - memo로 현재획 그릴 때 리렌더링 차단
-const CompletedStrokes = React.memo(({ strokes, toPathD }) => (
+// 전체화면 완성된 획 목록 (react-native-svg 렌더)
+const CompletedStrokes = React.memo(({ strokes }) => (
   <>
     {strokes.map((s, i) => (
-      <Path key={i} d={toPathD(s.points)} stroke={s.color}
+      <Path key={i} d={s.svgPath} stroke={s.color}
         strokeWidth={s.strokeWidth} fill="none" strokeLinecap="round" strokeLinejoin="round" />
     ))}
   </>
@@ -67,16 +68,6 @@ export default function DrawScreen({ navigation }) {
   const viewShotRef = useRef(null);
   const skiaCanvasRef = useRef(null);
   const [strokes, setStrokes] = useState([]);
-  const [renderTick, setRenderTick] = useState(0);
-  const fullRafRef = useRef(null);
-
-  const scheduleFullRender = () => {
-    if (fullRafRef.current) return;
-    fullRafRef.current = requestAnimationFrame(() => {
-      setFullRenderTick(n => n + 1);
-      fullRafRef.current = null;
-    });
-  };
 
   const [color, setColor] = useState(PALETTE[0]);
   const [tool, setTool] = useState('pen');
@@ -94,7 +85,7 @@ export default function DrawScreen({ navigation }) {
   const lsDimsRef = useRef({ w: 1, h: 1 });
   const fullLayoutDone = useRef(false);
   const fullCurrentStroke = useRef(null);
-  const [fullRenderTick, setFullRenderTick] = useState(0);
+  const [, setFullRenderTick] = useState(0);
   const [fullQdQuery, setFullQdQuery] = useState('');
   const [fullQdResults, setFullQdResults] = useState([]);
   const [fullQdLoading, setFullQdLoading] = useState(false);
@@ -154,7 +145,7 @@ export default function DrawScreen({ navigation }) {
       const sw = t === 'eraser' ? 40 : t === 'thick' ? 14 : 6;
       const sc = t === 'eraser' ? '#FFFFFF' : c;
       fullCurrentStroke.current = { tool: t, color: sc, strokeWidth: sw, points: [{ x: e.x, y: e.y }] };
-      scheduleFullRender();
+      setFullRenderTick(n => n + 1);
     })
     .onUpdate((e) => {
       if (!fullCurrentStroke.current) return;
@@ -166,23 +157,23 @@ export default function DrawScreen({ navigation }) {
         if (dx * dx + dy * dy < 4) return;
       }
       pts.push({ x: e.x, y: e.y });
-      scheduleFullRender();
+      setFullRenderTick(n => n + 1);
     })
     .onEnd(() => {
-      if (fullRafRef.current) { cancelAnimationFrame(fullRafRef.current); fullRafRef.current = null; }
       if (fullCurrentStroke.current) {
         const stroke = fullCurrentStroke.current;
         fullCurrentStroke.current = null;
-        setStrokes(s => [...s, stroke]);
+        const svgPath = toPathD(stroke.points);
+        if (svgPath) setStrokes(s => [...s, { svgPath, color: stroke.color, strokeWidth: stroke.strokeWidth }]);
         setFullRenderTick(n => n + 1);
       }
     })
     .onFinalize(() => {
-      if (fullRafRef.current) { cancelAnimationFrame(fullRafRef.current); fullRafRef.current = null; }
       if (fullCurrentStroke.current) {
         const stroke = fullCurrentStroke.current;
         fullCurrentStroke.current = null;
-        setStrokes(s => [...s, stroke]);
+        const svgPath = toPathD(stroke.points);
+        if (svgPath) setStrokes(s => [...s, { svgPath, color: stroke.color, strokeWidth: stroke.strokeWidth }]);
         setFullRenderTick(n => n + 1);
       }
     });
@@ -430,8 +421,8 @@ export default function DrawScreen({ navigation }) {
               height={CANVAS_H}
               strokes={strokes}
               onStrokeAdded={(stroke) => setStrokes(s => [...s, stroke])}
-              toolRef={toolRef}
-              colorRef={colorRef}
+              tool={tool}
+              color={color}
             />
             {/* 오버레이 레이어: 캡처 모드일 때 숨김 */}
             {overlay && !captureMode && (() => {
@@ -444,7 +435,7 @@ export default function DrawScreen({ navigation }) {
               const HROT = 22; // 회전 핸들 크기
 
               // draw 모드: 정적 오버레이만
-              if (overlayMode === 'draw') {
+              if (overlayMode === 'draw' || fullscreen) {
                 return (
                   <View pointerEvents="none" style={[StyleSheet.absoluteFill]}>
                     <View style={{
@@ -695,6 +686,7 @@ export default function DrawScreen({ navigation }) {
       {/* 전체화면 그리기 모달 (가로 3단 레이아웃) */}
       <Modal visible={fullscreen} animationType="fade" statusBarTranslucent
         supportedOrientations={['landscape']} onRequestClose={exitFullscreen}>
+        <GestureHandlerRootView style={{ flex: 1 }}>
         <SafeAreaView style={styles.fullWrap}>
 
           {/* 왼쪽 사이드바: 도구 + 색상 */}
@@ -768,7 +760,7 @@ export default function DrawScreen({ navigation }) {
                     </G>
                   );
                 })()}
-                <CompletedStrokes strokes={strokes} toPathD={toPathD} />
+                <CompletedStrokes strokes={strokes} />
                 {fullCurrentStroke.current && (
                   <Path d={toPathD(fullCurrentStroke.current.points)}
                     stroke={fullCurrentStroke.current.color}
@@ -812,6 +804,7 @@ export default function DrawScreen({ navigation }) {
           </View>
 
         </SafeAreaView>
+        </GestureHandlerRootView>
       </Modal>
 
     </SafeAreaView>
