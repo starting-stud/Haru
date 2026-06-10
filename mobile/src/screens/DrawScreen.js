@@ -125,7 +125,7 @@ export default function DrawScreen({ navigation }) {
     try {
       const data = await fetchQuickDraw(fullQdQuery.trim());
       if (data.drawings?.length) {
-        setFullQdResults(data.drawings.slice(0, 6).map((d, i) => ({
+        setFullQdResults(data.drawings.map((d, i) => ({
           name: `${fullQdQuery} ${i + 1}`, path: qdToPaths(d),
         })));
       } else if (data.outlines?.length) {
@@ -257,14 +257,14 @@ export default function DrawScreen({ navigation }) {
       : outlines.filter(o => o.category === category);
 
   const searchQD = async (q) => {
-    const query = (q ?? qdQuery).trim();
+    const query = (typeof q === 'string' ? q : qdQuery).trim();
     if (!query) return;
     setQdLoading(true);
     setQdResults([]);
     try {
       const data = await fetchQuickDraw(query);
       if (data.drawings?.length) {
-        setQdResults(data.drawings.slice(0, 6).map((d, i) => ({
+        setQdResults(data.drawings.map((d, i) => ({
           name: `${query} ${i + 1}`,
           path: qdToPaths(d),
         })));

@@ -125,7 +125,7 @@ router.get('/categories', (_req, res) => {
 // GET /api/quickdraw?ko=꽃&n=6  →  드로잉 스트로크 반환
 router.get('/', async (req, res) => {
   const ko = req.query.ko || '꽃';
-  const n = Math.min(parseInt(req.query.n) || 6, 12);
+  const n = Math.min(parseInt(req.query.n) || 20, 50);
   const en = KO_TO_QD[ko] || await translateToEn(ko);
 
   try {
