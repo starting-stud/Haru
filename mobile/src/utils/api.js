@@ -23,7 +23,7 @@ export async function fetchOutlinesSuggest(text) {
   return res.json();
 }
 
-export async function fetchQuickDraw(ko, n = 20) {
+export async function fetchQuickDraw(ko, n = 50) {
   const res = await fetch(`${API_BASE}/api/quickdraw?ko=${encodeURIComponent(ko)}&n=${n}`);
   return res.json();
 }
