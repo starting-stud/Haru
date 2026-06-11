@@ -48,25 +48,25 @@ router.post('/', async (req, res) => {
     const validImage = typeof diaryImage === 'string' && diaryImage.startsWith('https://') ? diaryImage : null;
     if (validImage) {
       const caption = diaryText
-        ? `이것이 어르신이 오늘 그린 그림일기예요. 일기 내용: "${diaryText.slice(0, 200)}"`
-        : '이것이 어르신이 오늘 그린 그림일기예요.';
+        ? `할머니의 그림일기예요. 할머니가 직접 쓰신 내용: "${diaryText.slice(0, 200)}". 그림이 추상적으로 보여도 반드시 쓰신 내용을 중심으로 이야기해주세요.`
+        : '할머니의 그림일기예요.';
       messages.push({
         role: 'user',
         content: [
-          { type: 'image_url', image_url: { url: validImage, detail: 'auto' } },
+          { type: 'image_url', image_url: { url: validImage, detail: 'high' } },
           { type: 'text', text: caption },
         ],
       });
-      messages.push({ role: 'assistant', content: '네, 그림 잘 봤어요!' });
+      messages.push({ role: 'assistant', content: '네, 그림과 글 모두 잘 봤어요!' });
     }
 
     // 대화 히스토리
     messages.push(...history.slice(-20).map(h => ({ role: h.role, content: h.content })));
 
-    // 현재 메시지 (이미지 없는 경우에만 일기 텍스트 맥락 추가)
+    // 현재 메시지 — 글 내용을 항상 포함해서 그림+글 모두 참조
     let userContent = message;
-    if (!validImage && diaryText && history.length === 0) {
-      userContent = `[오늘 일기 내용: "${diaryText.slice(0, 200)}"]\n\n${message}`;
+    if (diaryText) {
+      userContent = `[일기에 쓰신 내용: "${diaryText.slice(0, 200)}"]\n\n${message}`;
     }
     messages.push({ role: 'user', content: userContent });
 
