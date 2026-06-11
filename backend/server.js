@@ -7,7 +7,6 @@ import chatRouter from './routes/chat.js';
 import outlinesRouter from './routes/outlines.js';
 import quickdrawRouter from './routes/quickdraw.js';
 import speechRouter from './routes/speech.js';
-import pushRouter, { startPushScheduler } from './routes/push.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -21,7 +20,6 @@ app.use('/api/chat', chatRouter);
 app.use('/api/outlines', outlinesRouter);
 app.use('/api/quickdraw', quickdrawRouter);
 app.use('/api/speech', speechRouter);
-app.use('/api/push', pushRouter);
 
 // ── 헬스체크 ──
 app.get('/api/health', (_req, res) => {
@@ -45,5 +43,4 @@ app.listen(PORT, () => {
   console.log(`\n🌸 하루 서버 실행 중: http://localhost:${PORT}`);
   console.log(`   AI 챗봇: ${process.env.OPENAI_API_KEY ? '✅ 연결됨' : '⚠️  API 키 없음 (fallback 모드)'}`);
   console.log(`   Supabase: ${process.env.SUPABASE_URL ? '✅ 설정됨' : '⚠️  미설정'}`);
-  startPushScheduler();
 });
