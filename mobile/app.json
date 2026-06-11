@@ -22,8 +22,7 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-audio",
-      "@shopify/react-native-skia"
+      "expo-audio"
     ]
   }
 }

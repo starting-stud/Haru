@@ -4,6 +4,7 @@ import {
   ScrollView, Image, ActivityIndicator, Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { COLORS } from '../constants/theme';
 import { saveDiary } from '../utils/storage';
 
@@ -25,7 +26,12 @@ export default function DiaryWriteScreen({ navigation, route }) {
         privacy,
         image: imageUri,
       });
-      navigation.navigate('ChatbotModal', { diary: saved });
+      // 새 일기를 하루에게 전달 — 탭 열릴 때 자연스럽게 반응
+      await AsyncStorage.setItem('haruNewDiary', JSON.stringify(saved));
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'Main', state: { routes: [{ name: 'Home' }], index: 0 } }],
+      });
     } catch {
       Alert.alert('오류', '저장 중 문제가 생겼어요. 다시 시도해주세요.');
     }

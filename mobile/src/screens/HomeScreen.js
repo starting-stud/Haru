@@ -4,7 +4,7 @@ import {
   Modal, TextInput, KeyboardAvoidingView, Platform, FlatList,
   Image, ActivityIndicator, RefreshControl, Animated,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { COLORS } from '../constants/theme';
 import { supabase } from '../lib/supabase';
@@ -35,7 +35,7 @@ function timeAgo(iso) {
 }
 
 // ── 반응+댓글 통합 바텀시트 ──
-function PostSheet({ visible, item, reactions, myReaction, comments, onReact, onComment, onClose }) {
+function PostSheet({ visible, item, reactions, myReaction, comments, onReact, onComment, onClose, bottomInset = 0 }) {
   const [input, setInput] = useState('');
   const scaleAnims = useRef(REACTIONS.map(() => new Animated.Value(1))).current;
 
@@ -57,9 +57,13 @@ function PostSheet({ visible, item, reactions, myReaction, comments, onReact, on
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <View style={styles.sheetBack}>
-        <TouchableOpacity style={StyleSheet.absoluteFill} onPress={onClose} activeOpacity={1} />
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+      {/* KAV를 Modal 최외곽에 배치 → 키보드 높이 계산이 정확해짐 */}
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
+        <View style={styles.sheetBack}>
+          <TouchableOpacity style={StyleSheet.absoluteFill} onPress={onClose} activeOpacity={1} />
           <View style={styles.sheet}>
             <View style={styles.sheetHandle} />
 
@@ -114,8 +118,8 @@ function PostSheet({ visible, item, reactions, myReaction, comments, onReact, on
               )}
             />
 
-            {/* 댓글 입력 */}
-            <View style={styles.commentInputRow}>
+            {/* 댓글 입력 — 안전 영역(제스처바/노치)만큼 하단 여백 */}
+            <View style={[styles.commentInputRow, { paddingBottom: 12 + bottomInset }]}>
               <TextInput
                 style={styles.commentInput}
                 placeholder="따뜻한 댓글을 남겨요..."
@@ -131,8 +135,8 @@ function PostSheet({ visible, item, reactions, myReaction, comments, onReact, on
               </TouchableOpacity>
             </View>
           </View>
-        </KeyboardAvoidingView>
-      </View>
+        </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
@@ -143,6 +147,7 @@ function FeedCard({ item }) {
   const [reactions, setReactions] = useState({});
   const [myReaction, setMyReaction] = useState(null);
   const [comments, setComments] = useState([]);
+  const insets = useSafeAreaInsets();
 
   const handleReact = (emoji) => {
     setReactions(prev => {
@@ -188,7 +193,7 @@ function FeedCard({ item }) {
         <View style={styles.feedActions}>
           <View style={styles.feedActionBtn}>
             <Text style={[styles.feedActionText, !!myReaction && styles.feedActionActive]}>
-              {totalReactions > 0 ? `${topReaction?.emoji || '❤️'} ${totalReactions}` : '😊 반응하기'}
+              {totalReactions > 0 ? `${topReaction?.emoji || '❤️'} ${totalReactions}` : '😊'}
             </Text>
           </View>
           <View style={styles.feedActionBtn}>
@@ -206,6 +211,7 @@ function FeedCard({ item }) {
         onReact={handleReact}
         onComment={handleComment}
         onClose={() => setSheetOpen(false)}
+        bottomInset={insets.bottom}
       />
     </>
   );
@@ -213,6 +219,7 @@ function FeedCard({ item }) {
 
 // ── 메인 화면 ──
 export default function HomeScreen({ navigation }) {
+  const insets = useSafeAreaInsets();
   const now = new Date();
   const greeting = GREETINGS[now.getDate() % GREETINGS.length];
   const dateLabel = now.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' });
@@ -250,7 +257,7 @@ export default function HomeScreen({ navigation }) {
       <ScrollView
         style={styles.scroll}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 180 }}
+        contentContainerStyle={{ paddingBottom: 130 + insets.bottom }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => loadFeed(true)} tintColor={COLORS.purple} />}
       >
         <View style={styles.greetCard}>
@@ -281,7 +288,7 @@ export default function HomeScreen({ navigation }) {
         )}
       </ScrollView>
 
-      <TouchableOpacity style={styles.fab} onPress={() => navigation.navigate('Draw')} activeOpacity={0.85}>
+      <TouchableOpacity style={[styles.fab, { bottom: 130 + insets.bottom }]} onPress={() => navigation.navigate('Draw')} activeOpacity={0.85}>
         <Text style={styles.fabText}>✏️ 그림 그리기</Text>
       </TouchableOpacity>
     </SafeAreaView>
@@ -346,7 +353,7 @@ const styles = StyleSheet.create({
   commentAuthor: { fontSize: 13, fontWeight: '800', color: COLORS.purple },
   commentTime: { fontSize: 11, color: COLORS.muted },
   commentText: { fontSize: 14, color: COLORS.ink, lineHeight: 20 },
-  commentInputRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 14, paddingTop: 10, paddingBottom: 16, borderTopWidth: 1, borderTopColor: COLORS.border },
+  commentInputRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 14, paddingTop: 10, borderTopWidth: 1, borderTopColor: COLORS.border },
   commentInput: { flex: 1, backgroundColor: COLORS.bg, borderRadius: 22, borderWidth: 1.5, borderColor: COLORS.border, paddingHorizontal: 16, paddingVertical: 10, fontSize: 14, color: COLORS.ink },
   commentSendBtn: { paddingHorizontal: 18, borderRadius: 22, backgroundColor: COLORS.purple, alignItems: 'center', justifyContent: 'center' },
   commentSendText: { fontSize: 14, fontWeight: '800', color: COLORS.white },
@@ -362,7 +369,7 @@ const styles = StyleSheet.create({
 
   // FAB
   fab: {
-    position: 'absolute', bottom: 130, right: 20,
+    position: 'absolute', right: 20,
     backgroundColor: COLORS.purple, borderRadius: 28,
     paddingHorizontal: 20, paddingVertical: 14,
     elevation: 8, shadowColor: COLORS.purple, shadowOpacity: 0.4,

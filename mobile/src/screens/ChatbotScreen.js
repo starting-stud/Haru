@@ -1,10 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, FlatList,
-  StyleSheet, KeyboardAvoidingView, Platform, Image,
+  StyleSheet, KeyboardAvoidingView, Platform, Alert, ActivityIndicator,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useAudioRecorder, AudioModule, RecordingPresets } from 'expo-audio';
 import { COLORS } from '../constants/theme';
+import { fetchSpeech } from '../utils/api';
 import { useChatbot } from '../hooks/useChatbot';
 
 function Bubble({ role, content }) {
@@ -19,22 +21,19 @@ function Bubble({ role, content }) {
   );
 }
 
-export default function ChatbotScreen({ route, navigation }) {
-  const diary = route?.params?.diary;
-  const isModal = !!diary;
+export default function ChatbotScreen() {
+  const insets = useSafeAreaInsets();
   const [input, setInput] = useState('');
+  const [transcribing, setTranscribing] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
   const listRef = useRef(null);
-  const { messages, loading, send, initGreeting } = useChatbot(diary?.id, diary?.text || '');
+  const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
+  const { messages, loading, send, initGreeting, ready } = useChatbot();
 
   useEffect(() => {
-    if (diary) {
-      const s = (diary.text || '').trim();
-      const greeting = s
-        ? `방금 일기에 "${s.slice(0, 35)}${s.length > 35 ? '...' : ''}"라고 적어주셨네요! 소중한 하루를 기록해주셔서 감사해요 🌷`
-        : '오늘 그림일기를 완성하셨네요! 그림 그리시느라 수고 많으셨어요 🌼';
-      initGreeting(greeting);
-    }
-  }, [diary?.id]);
+    if (!ready) return;
+    if (messages.length === 0) initGreeting();
+  }, [ready]);
 
   const handleSend = () => {
     const msg = input.trim();
@@ -43,43 +42,47 @@ export default function ChatbotScreen({ route, navigation }) {
     setInput('');
   };
 
-  const defaultMessages = !diary && !messages.length
-    ? [{ role: 'assistant', content: '안녕하세요! 오늘 그리신 그림일기에 대해 함께 이야기해봐요 🌼', id: -1 }]
-    : messages;
+  const startRecording = async () => {
+    const { granted } = await AudioModule.requestRecordingPermissionsAsync();
+    if (!granted) { Alert.alert('권한 필요', '마이크 사용 권한이 필요해요'); return; }
+    await recorder.prepareToRecordAsync();
+    recorder.record();
+    setIsRecording(true);
+  };
+
+  const stopAndSend = async () => {
+    setIsRecording(false);
+    await recorder.stop();
+    const uri = recorder.uri;
+    if (!uri) return;
+    setTranscribing(true);
+    try {
+      const { text } = await fetchSpeech(uri);
+      if (text?.trim()) send(text.trim());
+    } catch {
+      Alert.alert('오류', '음성 인식에 실패했어요. 다시 시도해주세요.');
+    }
+    setTranscribing(false);
+  };
 
   return (
-    <SafeAreaView style={styles.safe} edges={isModal ? ['top', 'bottom'] : []}>
-      {/* 헤더 */}
+    <SafeAreaView style={styles.safe} edges={[]}>
       <View style={styles.header}>
-        {isModal && (
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-            <Text style={styles.backBtnText}>←</Text>
-          </TouchableOpacity>
-        )}
         <View style={styles.headerAvatar}><Text style={{ fontSize: 22 }}>🌼</Text></View>
         <View style={{ flex: 1 }}>
-          <Text style={styles.headerTitle}>하루 챗봇</Text>
-          <Text style={styles.headerSub}>오늘의 일기에 대해 대화해보세요</Text>
+          <Text style={styles.headerTitle}>하루</Text>
+          <Text style={styles.headerSub}>그림일기와 일상을 함께해요</Text>
         </View>
         <View style={styles.badge}><Text style={styles.badgeText}>AI 실시간</Text></View>
       </View>
 
-      {/* 일기 그림 */}
-      {diary?.image && (
-        <View style={styles.imgWrap}>
-          <Text style={styles.imgLabel}>🎨 오늘 그리신 그림이에요</Text>
-          <Image source={{ uri: diary.image }} style={styles.img} resizeMode="contain" />
-        </View>
-      )}
-
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
       >
         <FlatList
           ref={listRef}
-          data={defaultMessages}
+          data={messages}
           keyExtractor={item => String(item.id)}
           renderItem={({ item }) => <Bubble role={item.role} content={item.content} />}
           contentContainerStyle={styles.list}
@@ -91,20 +94,30 @@ export default function ChatbotScreen({ route, navigation }) {
 
         <View style={styles.inputArea}>
           <View style={styles.inputRow}>
+            <TouchableOpacity
+              style={[styles.micBtn, isRecording && styles.micBtnActive]}
+              onPress={isRecording ? stopAndSend : startRecording}
+              disabled={transcribing || loading}
+            >
+              {transcribing
+                ? <ActivityIndicator color={COLORS.white} size="small" />
+                : <Text style={styles.micBtnText}>{isRecording ? '⏹' : '🎤'}</Text>
+              }
+            </TouchableOpacity>
             <TextInput
               style={styles.input}
               value={input} onChangeText={setInput}
-              placeholder="하루에게 말을 걸어보세요..."
+              placeholder="말하거나 입력해보세요..."
               placeholderTextColor={COLORS.muted}
               onSubmitEditing={handleSend}
               returnKeyType="send"
               multiline
             />
-            <TouchableOpacity style={styles.sendBtn} onPress={handleSend} disabled={loading}>
+            <TouchableOpacity style={styles.sendBtn} onPress={handleSend} disabled={loading || !input.trim()}>
               <Text style={styles.sendBtnText}>↑</Text>
             </TouchableOpacity>
           </View>
-          {!isModal && <View style={{ height: 110 }} />}
+          <View style={{ height: 110 + insets.bottom }} />
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -118,16 +131,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16, paddingVertical: 10,
     backgroundColor: COLORS.white, borderBottomWidth: 1.5, borderBottomColor: COLORS.border,
   },
-  backBtn: { width: 34, height: 34, borderRadius: 17, backgroundColor: COLORS.purpleSoft, alignItems: 'center', justifyContent: 'center' },
-  backBtnText: { fontSize: 18, color: COLORS.purple, fontWeight: '700' },
   headerAvatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: COLORS.orangeLight, borderWidth: 2, borderColor: COLORS.orange, alignItems: 'center', justifyContent: 'center' },
   headerTitle: { fontSize: 15, fontWeight: '900', color: COLORS.ink },
   headerSub: { fontSize: 11, color: COLORS.muted },
   badge: { backgroundColor: COLORS.purple, borderRadius: 10, paddingHorizontal: 8, paddingVertical: 4 },
   badgeText: { fontSize: 10, fontWeight: '800', color: COLORS.white },
-  imgWrap: { margin: 12, backgroundColor: COLORS.purpleLight, borderRadius: 16, borderWidth: 1.5, borderColor: COLORS.purpleSoft, padding: 10, alignItems: 'center' },
-  imgLabel: { fontSize: 12, color: COLORS.muted, marginBottom: 6 },
-  img: { width: '100%', height: 150, borderRadius: 10 },
   list: { paddingVertical: 12, paddingHorizontal: 4 },
   bubbleWrap: { flexDirection: 'row', marginVertical: 4, paddingHorizontal: 12, alignItems: 'flex-end', gap: 6 },
   bubbleWrapAI: {},
@@ -151,6 +159,9 @@ const styles = StyleSheet.create({
     borderColor: COLORS.purpleSoft, paddingHorizontal: 16, paddingVertical: 10,
     fontSize: 15, color: COLORS.ink, maxHeight: 100,
   },
+  micBtn: { width: 46, height: 46, borderRadius: 23, backgroundColor: COLORS.purpleSoft, alignItems: 'center', justifyContent: 'center' },
+  micBtnActive: { backgroundColor: '#FF4444' },
+  micBtnText: { fontSize: 20 },
   sendBtn: { width: 46, height: 46, borderRadius: 23, backgroundColor: COLORS.purple, alignItems: 'center', justifyContent: 'center' },
   sendBtnText: { fontSize: 18, color: COLORS.white, fontWeight: '700' },
 });

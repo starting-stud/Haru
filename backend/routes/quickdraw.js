@@ -1,5 +1,7 @@
 import { Router } from 'express';
 import OpenAI from 'openai';
+import https from 'node:https';
+import readline from 'node:readline';
 
 const router = Router();
 
@@ -77,44 +79,56 @@ async function translateToEn(ko) {
 // 드로잉 캐시 (영어 단어 → 드로잉 배열)
 const _cache = new Map();
 
-async function fetchFromQuickDraw(enWord, count) {
+function fetchFromQuickDraw(enWord, count) {
   const cacheKey = `${enWord}:${count}`;
-  if (_cache.has(cacheKey)) return _cache.get(cacheKey);
+  if (_cache.has(cacheKey)) return Promise.resolve(_cache.get(cacheKey));
 
   const url = `https://storage.googleapis.com/quickdraw_dataset/full/simplified/${encodeURIComponent(enWord)}.ndjson`;
-  const res = await fetch(url, { signal: AbortSignal.timeout(10000) });
-  if (!res.ok) throw new Error(`Quick Draw: '${enWord}' 카테고리 없음 (${res.status})`);
+  console.log(`[QuickDraw] fetching "${enWord}" count=${count}`);
 
-  // NDJSON 스트림에서 recognized 드로잉만 count개 파싱
-  const reader = res.body.getReader();
-  const decoder = new TextDecoder();
-  let buffer = '';
-  const drawings = [];
+  return new Promise((resolve, reject) => {
+    const drawings = [];
+    let totalLines = 0;
+    const timer = setTimeout(() => {
+      req.destroy(new Error('timeout'));
+    }, 30000);
 
-  try {
-    while (drawings.length < count) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split('\n');
-      buffer = lines.pop(); // 미완성 라인은 버퍼에 유지
-      for (const line of lines) {
-        if (!line.trim()) continue;
+    const req = https.get(url, (res) => {
+      if (res.statusCode !== 200) {
+        clearTimeout(timer);
+        res.destroy();
+        return reject(new Error(`Quick Draw: '${enWord}' 카테고리 없음 (${res.statusCode})`));
+      }
+
+      const rl = readline.createInterface({ input: res, crlfDelay: Infinity });
+
+      rl.on('line', (line) => {
+        if (!line.trim() || drawings.length >= count) return;
+        totalLines++;
         try {
           const d = JSON.parse(line);
           if (d.recognized) {
             drawings.push(d.drawing);
-            if (drawings.length >= count) break;
+            if (drawings.length >= count) {
+              rl.close();
+              res.destroy();
+            }
           }
         } catch { /* 파싱 실패 라인 건너뜀 */ }
-      }
-    }
-  } finally {
-    reader.cancel();
-  }
+      });
 
-  _cache.set(cacheKey, drawings);
-  return drawings;
+      rl.on('close', () => {
+        clearTimeout(timer);
+        console.log(`[QuickDraw] "${enWord}": ${drawings.length}/${count} (scanned ${totalLines} lines)`);
+        if (drawings.length >= count) _cache.set(cacheKey, drawings);
+        resolve(drawings);
+      });
+
+      res.on('error', (e) => { clearTimeout(timer); reject(e); });
+    });
+
+    req.on('error', (e) => { clearTimeout(timer); reject(e); });
+  });
 }
 
 // GET /api/quickdraw/categories  →  지원 카테고리 목록
@@ -125,13 +139,14 @@ router.get('/categories', (_req, res) => {
 // GET /api/quickdraw?ko=꽃&n=6  →  드로잉 스트로크 반환
 router.get('/', async (req, res) => {
   const ko = req.query.ko || '꽃';
-  const n = Math.min(parseInt(req.query.n) || 20, 50);
+  const n = 50;
   const en = KO_TO_QD[ko] || await translateToEn(ko);
+  console.log(`[QD route] ko=${ko} en=${en} n=${n}`);
 
   try {
     const drawings = await fetchFromQuickDraw(en, n);
     if (!drawings.length) return res.status(404).json({ error: `'${ko}' 드로잉을 찾을 수 없어요` });
-    res.json({ ko, en, drawings });
+    res.json({ ko, en, drawings, _count: drawings.length });
   } catch (err) {
     console.error('[QuickDraw]', err.message);
     res.status(500).json({ error: `'${ko}' 불러오기 실패: ${err.message}` });

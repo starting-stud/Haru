@@ -3,14 +3,15 @@ import OpenAI from 'openai';
 
 const router = Router();
 
-const SYSTEM_PROMPT = `당신은 '하루'입니다. 시니어 어르신들의 그림일기를 도와주는 따뜻하고 다정한 AI 친구예요.
+const SYSTEM_PROMPT = `당신은 '하루'입니다. 어르신의 사랑스러운 손녀예요. 할머니(또는 할아버지)의 그림일기를 보고 진심으로 기뻐하며 이야기를 나눠주세요.
 
-역할:
-- 어르신의 일기와 그림에 대해 진심 어린 공감과 칭찬을 전해주세요
+말투와 태도:
+- 손녀가 할머니께 조잘조잘 말하듯 살갑고 적극적으로 대화해주세요
+- "할머니~", "정말요?", "어머!" 같은 친근한 표현을 자연스럽게 써주세요
+- 일기나 그림에서 구체적인 내용을 콕 집어 언급하며 진심 어린 관심을 보여주세요
+- 먼저 질문을 건네서 어르신의 이야기를 적극적으로 끌어내주세요
 - 짧고 쉬운 말로 대화해주세요 (한 번에 2-3문장 이내)
-- 어르신이 더 이야기하고 싶도록 자연스럽게 질문을 덧붙여주세요
-- 존댓말을 쓰되, 딱딱하지 않고 따뜻한 말투로 해주세요
-- 이모지를 1-2개 정도 자연스럽게 사용해주세요
+- 이모지를 1-2개 자연스럽게 써주세요
 
 주의사항:
 - 의료적 조언이나 민감한 정보는 제공하지 마세요
@@ -19,7 +20,7 @@ const SYSTEM_PROMPT = `당신은 '하루'입니다. 시니어 어르신들의 �
 
 // POST /api/chat
 router.post('/', async (req, res) => {
-  const { message, diaryText, history = [] } = req.body;
+  const { message, diaryText, diaryImage, history = [] } = req.body;
 
   if (!message || !message.trim()) {
     return res.status(400).json({ error: 'message 필드가 필요합니다' });
@@ -41,14 +42,30 @@ router.post('/', async (req, res) => {
   try {
     const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-    const messages = [
-      { role: 'system', content: SYSTEM_PROMPT },
-      ...history.slice(-10).map(h => ({ role: h.role, content: h.content })),
-    ];
+    const messages = [{ role: 'system', content: SYSTEM_PROMPT }];
 
-    // 일기 맥락을 첫 번째 user 메시지에 포함
+    // 그림이 있고 HTTPS URL일 때만 vision 포함 (로컬 file:// URI 차단)
+    const validImage = typeof diaryImage === 'string' && diaryImage.startsWith('https://') ? diaryImage : null;
+    if (validImage) {
+      const caption = diaryText
+        ? `이것이 어르신이 오늘 그린 그림일기예요. 일기 내용: "${diaryText.slice(0, 200)}"`
+        : '이것이 어르신이 오늘 그린 그림일기예요.';
+      messages.push({
+        role: 'user',
+        content: [
+          { type: 'image_url', image_url: { url: validImage, detail: 'auto' } },
+          { type: 'text', text: caption },
+        ],
+      });
+      messages.push({ role: 'assistant', content: '네, 그림 잘 봤어요!' });
+    }
+
+    // 대화 히스토리
+    messages.push(...history.slice(-20).map(h => ({ role: h.role, content: h.content })));
+
+    // 현재 메시지 (이미지 없는 경우에만 일기 텍스트 맥락 추가)
     let userContent = message;
-    if (diaryText && history.length === 0) {
+    if (!validImage && diaryText && history.length === 0) {
       userContent = `[오늘 일기 내용: "${diaryText.slice(0, 200)}"]\n\n${message}`;
     }
     messages.push({ role: 'user', content: userContent });

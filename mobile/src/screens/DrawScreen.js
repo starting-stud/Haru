@@ -4,7 +4,7 @@ import {
   ScrollView, Alert, Dimensions, Modal, TextInput, ActivityIndicator, Animated,
 } from 'react-native';
 import Svg, { Path, G } from 'react-native-svg';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import ViewShot from 'react-native-view-shot';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -14,6 +14,7 @@ import { COLORS, API_BASE } from '../constants/theme';
 import { fetchOutlines, fetchQuickDraw } from '../utils/api';
 import { getFavorites, toggleFavorite } from '../utils/storage';
 import DrawCanvas from '../components/SkiaCanvas';
+import DrawTour from '../components/DrawTour';
 
 const { width: SW, height: SH } = Dimensions.get('window');
 const CANVAS_W = SW - 32;
@@ -65,6 +66,7 @@ function qdToPaths(strokes) {
 }
 
 export default function DrawScreen({ navigation }) {
+  const insets = useSafeAreaInsets();
   const viewShotRef = useRef(null);
   const skiaCanvasRef = useRef(null);
   const [strokes, setStrokes] = useState([]);
@@ -178,58 +180,120 @@ export default function DrawScreen({ navigation }) {
       }
     });
 
+  const [showTour, setShowTour] = useState(false);
+  const [tourLandscape, setTourLandscape] = useState(false);
+  const [tourSpots, setTourSpots] = useState({});
+  const canvasContainerRef = useRef(null);
+  const toolSectionRef = useRef(null);
+  const toolsRowRef = useRef(null);
+  const outlineSectionRef = useRef(null);
+  const fullLeftRef = useRef(null);
+  const fullRightRef = useRef(null);
+  const fullTopbarRef = useRef(null);
+
+  const measure = (ref) => new Promise(res => {
+    if (!ref?.current) return res(null);
+    ref.current.measureInWindow((x, y, w, h) => res({ x, y, w, h }));
+  });
+
+  const openTour = (landscape) => {
+    if (landscape) {
+      Promise.all([
+        measure(fullLeftRef),
+        measure(fullRightRef),
+        measure(fullTopbarRef),
+      ]).then(([left, right, topbar]) => {
+        const undo = left ? {
+          x: left.x, y: left.y + left.h * 0.55,
+          w: left.w, h: left.h * 0.45,
+        } : null;
+        setTourSpots({ left, right, topbar, undo });
+        setTourLandscape(true);
+        setShowTour(true);
+      });
+      return;
+    }
+    Promise.all([
+      measure(canvasContainerRef),
+      measure(toolSectionRef),
+      measure(toolsRowRef),
+      measure(outlineSectionRef),
+    ]).then(([canvas, palette, tools, outline]) => {
+      const mic = canvas ? {
+        x: canvas.x + canvas.w - 10 - 54,
+        y: canvas.y + canvas.h - 10 - 54,
+        w: 54, h: 54,
+      } : null;
+      const expand = canvas ? {
+        x: canvas.x + 8, y: canvas.y + 8, w: 64, h: 42,
+      } : null;
+      setTourSpots({ canvas, palette, tools, outline, mic, expand });
+      setTourLandscape(false);
+      setShowTour(true);
+    });
+  };
+
   // 윤곽선 오버레이
   const [overlay, setOverlay] = useState(null);
-  const [overlayMode, setOverlayMode] = useState('draw'); // 'draw' | 'adjust'
+  const [overlayLocked, setOverlayLocked] = useState(false); // true = 핸들 숨김, 그리기 모드
   const [captureMode, setCaptureMode] = useState(false);
   // PPT 스타일 선택박스 상태: x,y는 박스 중심 좌표 (캔버스 기준)
   const [overlayBox, setOverlayBox] = useState({ cx: 0, cy: 0, w: CANVAS_W, h: CANVAS_H, rot: 0 });
-  const overlayGestureTypeRef = useRef('none'); // 'move' | 'scale' | 'rotate'
-  const overlayStartRef = useRef({});
 
-  // 캔버스 기준 좌표로 핸들 위치 계산 (회전 포함)
+  // 캔버스 기준 핸들 위치 계산 (회전 포함)
   const getHandlePositions = (box) => {
     const { cx, cy, w, h, rot } = box;
     const θ = rot * Math.PI / 180;
     const cos = Math.cos(θ), sin = Math.sin(θ);
     const rotate = (lx, ly) => ({ x: cx + lx * cos - ly * sin, y: cy + lx * sin + ly * cos });
     return {
-      br: rotate(w / 2, h / 2),         // 크기 조절 핸들 (오른쪽 아래)
-      rot: rotate(0, -h / 2 - 40),      // 회전 핸들 (위 중앙)
+      tl:  rotate(-w / 2, -h / 2),       // 이동 핸들 (왼쪽 위)
+      tr:  rotate( w / 2, -h / 2),       // 제거 버튼 (오른쪽 위)
+      br:  rotate( w / 2,  h / 2),       // 크기 조절 (오른쪽 아래)
+      rot: rotate(0, -h / 2 - 36),       // 회전 핸들 (위 중앙)
     };
   };
 
-  const overlayGesture = Gesture.Pan()
-    .runOnJS(true)
-    .minDistance(0)
-    .onBegin((e) => {
-      const box = overlayBox;
-      const handles = getHandlePositions(box);
-      const dist = (a, b) => Math.sqrt((e.x - a.x) ** 2 + (e.y - a.y) ** 2);
-      if (dist(e, handles.rot) < 28) {
-        overlayGestureTypeRef.current = 'rotate';
-        overlayStartRef.current = { rot: box.rot, startX: e.x, startY: e.y, cx: box.cx, cy: box.cy };
-      } else if (dist(e, handles.br) < 28) {
-        overlayGestureTypeRef.current = 'scale';
-        overlayStartRef.current = { w: box.w, h: box.h };
-      } else {
-        overlayGestureTypeRef.current = 'move';
-        overlayStartRef.current = { cx: box.cx, cy: box.cy };
-      }
+  // overlayBox 최신값을 gesture onBegin에서 읽기 위한 ref
+  const overlayBoxRef = useRef(overlayBox);
+  useEffect(() => { overlayBoxRef.current = overlayBox; }, [overlayBox]);
+
+  const overlayMoveStart = useRef({});
+  const overlayResizeStart = useRef({});
+  const overlayRotateStart = useRef({});
+
+  const moveGesture = Gesture.Pan()
+    .runOnJS(true).minDistance(0)
+    .onBegin(() => {
+      const { cx, cy } = overlayBoxRef.current;
+      overlayMoveStart.current = { cx, cy };
     })
     .onUpdate((e) => {
-      const type = overlayGestureTypeRef.current;
-      const s = overlayStartRef.current;
-      if (type === 'move') {
-        setOverlayBox(b => ({ ...b, cx: s.cx + e.translationX, cy: s.cy + e.translationY }));
-      } else if (type === 'scale') {
-        const newW = Math.max(60, s.w + e.translationX * 1.5);
-        const ratio = s.h / s.w;
-        setOverlayBox(b => ({ ...b, w: newW, h: newW * ratio }));
-      } else if (type === 'rotate') {
-        const angle = Math.atan2(e.y - s.cy, e.x - s.cx) * 180 / Math.PI + 90;
-        setOverlayBox(b => ({ ...b, rot: angle }));
-      }
+      const s = overlayMoveStart.current;
+      setOverlayBox(b => ({ ...b, cx: s.cx + e.translationX, cy: s.cy + e.translationY }));
+    });
+
+  const resizeGesture = Gesture.Pan()
+    .runOnJS(true).minDistance(0)
+    .onBegin(() => {
+      const { w, h } = overlayBoxRef.current;
+      overlayResizeStart.current = { w, h };
+    })
+    .onUpdate((e) => {
+      const s = overlayResizeStart.current;
+      const newW = Math.max(60, s.w + e.translationX * 2);
+      const ratio = s.h / s.w;
+      setOverlayBox(b => ({ ...b, w: newW, h: newW * ratio }));
+    });
+
+  const rotateGesture = Gesture.Pan()
+    .runOnJS(true).minDistance(0)
+    .onBegin(() => {
+      overlayRotateStart.current = { rot: overlayBoxRef.current.rot };
+    })
+    .onUpdate((e) => {
+      const s = overlayRotateStart.current;
+      setOverlayBox(b => ({ ...b, rot: s.rot + e.translationX * 0.6 }));
     });
 
   // 윤곽선 인라인
@@ -263,6 +327,7 @@ export default function DrawScreen({ navigation }) {
     setQdResults([]);
     try {
       const data = await fetchQuickDraw(query);
+      console.log('[QD] drawings:', data.drawings?.length, '_count:', data._count, 'error:', data.error);
       if (data.drawings?.length) {
         setQdResults(data.drawings.map((d, i) => ({
           name: `${query} ${i + 1}`,
@@ -273,7 +338,7 @@ export default function DrawScreen({ navigation }) {
       } else {
         setQdResults([]);
       }
-    } catch {}
+    } catch (e) { console.error('[QD error]', e); }
     setQdLoading(false);
   };
 
@@ -296,7 +361,7 @@ export default function DrawScreen({ navigation }) {
       if (cleaned) {
         setQdQuery(cleaned);
         searchQD(cleaned);
-        Speech.speak(`${cleaned} 윤곽선을 찾아볼게요`, { language: 'ko-KR' });
+        Speech.speak(`${cleaned.replace(/\p{Emoji}/gu, '').trim()} 윤곽선을 찾아볼게요`, { language: 'ko-KR' });
       }
     } catch {
       Alert.alert('', '음성 인식에 실패했어요. 다시 시도해주세요.');
@@ -342,10 +407,10 @@ export default function DrawScreen({ navigation }) {
   const stampOutline = (path, name) => {
     setOverlay({ path, name });
     setOverlayBox({ cx: CANVAS_W / 2, cy: CANVAS_H / 2, w: CANVAS_W * 0.8, h: CANVAS_H * 0.8, rot: 0 });
-    setOverlayMode('adjust');
+    setOverlayLocked(false);
   };
 
-  const removeOverlay = () => { setOverlay(null); setOverlayMode('draw'); };
+  const removeOverlay = () => { setOverlay(null); setOverlayLocked(false); };
 
   // 전체화면용 toPathD (SVG 문자열, 전체화면 사이드바에서만 사용)
   const toPathD = (points) => {
@@ -392,18 +457,18 @@ export default function DrawScreen({ navigation }) {
       {/* 오버레이 컨트롤 바 */}
       {overlay && (
         <View style={styles.overlayBar}>
-          <TouchableOpacity
-            style={[styles.overlayBarBtn, overlayMode === 'adjust' && styles.overlayBarBtnActive]}
-            onPress={() => setOverlayMode('adjust')}>
-            <Text style={[styles.overlayBarTxt, overlayMode === 'adjust' && styles.overlayBarTxtActive]}>✋ 위치·크기·회전</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.overlayBarBtn, overlayMode === 'draw' && styles.overlayBarBtnActive]}
-            onPress={() => setOverlayMode('draw')}>
-            <Text style={[styles.overlayBarTxt, overlayMode === 'draw' && styles.overlayBarTxtActive]}>✏️ 그리기</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.overlayBarRemove} onPress={removeOverlay}>
-            <Text style={styles.overlayBarRemoveTxt}>✕ 제거</Text>
+          <Text style={styles.overlayBarName} numberOfLines={1}>{overlay.name}</Text>
+          {overlayLocked ? (
+            <TouchableOpacity style={styles.overlayEditBtn} onPress={() => setOverlayLocked(false)}>
+              <Text style={styles.overlayEditTxt}>✎ 다시 조정</Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity style={styles.overlayConfirmBtn} onPress={() => setOverlayLocked(true)}>
+              <Text style={styles.overlayConfirmTxt}>✓ 배치 완료</Text>
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity style={styles.overlayRemoveBtn} onPress={removeOverlay}>
+            <Text style={styles.overlayRemoveTxt}>✕ 제거</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -412,7 +477,7 @@ export default function DrawScreen({ navigation }) {
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 16 }}>
 
         {/* 캔버스 */}
-        <View style={styles.canvasContainer}>
+        <View style={styles.canvasContainer} ref={canvasContainerRef}>
         <ViewShot ref={viewShotRef} style={styles.canvasWrap} options={{ format: 'png', quality: 0.95 }}>
           <View style={{ width: CANVAS_W, height: CANVAS_H }}>
             <DrawCanvas
@@ -429,99 +494,67 @@ export default function DrawScreen({ navigation }) {
               const { cx, cy, w, h, rot } = overlayBox;
               const scX = w / 24, scY = h / 24;
               const boxLeft = cx - w / 2, boxTop = cy - h / 2;
-              const handles = getHandlePositions(overlayBox);
-              const HDOT = 14; // 모서리 핸들 크기
-              const HSCALE = 20; // 크기조절 핸들 크기
-              const HROT = 22; // 회전 핸들 크기
 
-              // draw 모드: 정적 오버레이만
-              if (overlayMode === 'draw' || fullscreen) {
-                return (
-                  <View pointerEvents="none" style={[StyleSheet.absoluteFill]}>
-                    <View style={{
-                      position: 'absolute',
-                      left: boxLeft, top: boxTop,
-                      width: w, height: h,
-                      transform: [{ rotate: `${rot}deg` }],
-                    }}>
-                      <Svg width={w} height={h}>
-                        <Path d={overlay.path} stroke="#7B5EA7" strokeWidth={0.5}
-                          fill="none" strokeLinecap="round" strokeLinejoin="round"
-                          strokeDasharray="2 3" opacity={0.55}
-                          transform={`scale(${scX}, ${scY})`} />
-                      </Svg>
-                    </View>
-                  </View>
-                );
-              }
-
-              // adjust 모드: PPT 스타일 선택박스
-              return (
-                <GestureDetector gesture={overlayGesture}>
-                  <View style={StyleSheet.absoluteFill}>
-                    {/* SVG path + 점선 테두리 박스 */}
-                    <View style={{
-                      position: 'absolute',
-                      left: boxLeft, top: boxTop,
-                      width: w, height: h,
-                      transform: [{ rotate: `${rot}deg` }],
-                    }} pointerEvents="none">
-                      <Svg width={w} height={h}>
-                        <Path d={overlay.path} stroke="#7B5EA7" strokeWidth={0.5}
-                          fill="none" strokeLinecap="round" strokeLinejoin="round"
-                          strokeDasharray="2 3" opacity={0.65}
-                          transform={`scale(${scX}, ${scY})`} />
-                      </Svg>
-                      {/* 점선 테두리 */}
+              // 공통: SVG 윤곽선 + 점선 테두리 (터치 통과)
+              const outlineSvg = (
+                <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+                  <View style={{
+                    position: 'absolute', left: boxLeft, top: boxTop,
+                    width: w, height: h,
+                    transform: [{ rotate: `${rot}deg` }],
+                  }}>
+                    <Svg width={w} height={h}>
+                      <Path d={overlay.path} stroke="#7B5EA7" strokeWidth={0.5}
+                        fill="none" strokeLinecap="round" strokeLinejoin="round"
+                        strokeDasharray="2 3" opacity={overlayLocked ? 0.45 : 0.65}
+                        transform={`scale(${scX}, ${scY})`} />
+                    </Svg>
+                    {!overlayLocked && (
                       <View style={{ ...StyleSheet.absoluteFillObject, borderWidth: 1.5, borderColor: '#7B5EA7', borderStyle: 'dashed', borderRadius: 4 }} />
-                      {/* 4개 모서리 흰 원 */}
-                      {[[0,0],[w-HDOT,0],[0,h-HDOT],[w-HDOT,h-HDOT]].map(([l,t],i) => (
-                        <View key={i} style={{ position:'absolute', left:l-HDOT/2+HDOT/2, top:t-HDOT/2+HDOT/2,
-                          width:HDOT, height:HDOT, borderRadius:HDOT/2,
-                          backgroundColor:'#fff', borderWidth:2, borderColor:'#7B5EA7' }} />
-                      ))}
-                    </View>
-
-                    {/* 크기 조절 핸들 (오른쪽 아래, 보라 사각) */}
-                    <View pointerEvents="none" style={{
-                      position: 'absolute',
-                      left: handles.br.x - HSCALE / 2, top: handles.br.y - HSCALE / 2,
-                      width: HSCALE, height: HSCALE, borderRadius: 5,
-                      backgroundColor: '#7B5EA7',
-                      borderWidth: 2, borderColor: '#fff',
-                      shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 3,
-                    }} />
-
-                    {/* 회전 핸들 선: SVG로 직접 그림 (transformOrigin 미지원 우회) */}
-                    {(() => {
-                      const θ = rot * Math.PI / 180;
-                      const topCenterX = cx - (h / 2) * Math.sin(θ);
-                      const topCenterY = cy - (h / 2) * Math.cos(θ);
-                      const lineEndX = handles.rot.x;
-                      const lineEndY = handles.rot.y;
-                      return (
-                        <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-                          <Svg width={CANVAS_W} height={CANVAS_H}>
-                            <Path d={`M${topCenterX},${topCenterY} L${lineEndX},${lineEndY}`}
-                              stroke="#7B5EA7" strokeWidth={1.5} />
-                          </Svg>
-                        </View>
-                      );
-                    })()}
-
-                    {/* 회전 핸들 원 */}
-                    <View pointerEvents="none" style={{
-                      position: 'absolute',
-                      left: handles.rot.x - HROT / 2, top: handles.rot.y - HROT / 2,
-                      width: HROT, height: HROT, borderRadius: HROT / 2,
-                      backgroundColor: '#7B5EA7', borderWidth: 2, borderColor: '#fff',
-                      alignItems: 'center', justifyContent: 'center',
-                      shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 3,
-                    }}>
-                      <Text style={{ color: '#fff', fontSize: 12, fontWeight: '900' }}>↻</Text>
-                    </View>
+                    )}
                   </View>
-                </GestureDetector>
+                </View>
+              );
+
+              // 배치 완료(locked) → 정적 가이드만 표시, 핸들 없음
+              if (overlayLocked) return outlineSvg;
+
+              // 조정 중 → 핸들 표시
+              const handles = getHandlePositions(overlayBox);
+              const HS = 34;
+              return (
+                <>
+                  {outlineSvg}
+                  {/* 회전 핸들 연결선 */}
+                  <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+                    <Svg width={CANVAS_W} height={CANVAS_H} style={StyleSheet.absoluteFill}>
+                      {(() => {
+                        const θ = rot * Math.PI / 180;
+                        const tcX = cx - (h / 2) * Math.sin(θ);
+                        const tcY = cy - (h / 2) * Math.cos(θ);
+                        return <Path d={`M${tcX},${tcY} L${handles.rot.x},${handles.rot.y}`} stroke="#7B5EA7" strokeWidth={1.5} />;
+                      })()}
+                    </Svg>
+                  </View>
+                  {/* 이동 핸들 — 왼쪽 위 */}
+                  <GestureDetector gesture={moveGesture}>
+                    <View style={[styles.olHandle, { left: handles.tl.x - HS/2, top: handles.tl.y - HS/2, width: HS, height: HS, borderRadius: HS/2 }]}>
+                      <Text style={styles.olHandleTxt}>이동</Text>
+                    </View>
+                  </GestureDetector>
+                  {/* 크기 핸들 — 오른쪽 아래 */}
+                  <GestureDetector gesture={resizeGesture}>
+                    <View style={[styles.olHandle, { left: handles.br.x - HS/2, top: handles.br.y - HS/2, width: HS, height: HS, borderRadius: 8 }]}>
+                      <Text style={styles.olHandleTxt}>크기</Text>
+                    </View>
+                  </GestureDetector>
+                  {/* 회전 핸들 — 위 중앙 */}
+                  <GestureDetector gesture={rotateGesture}>
+                    <View style={[styles.olHandle, { left: handles.rot.x - HS/2, top: handles.rot.y - HS/2, width: HS, height: HS, borderRadius: HS/2 }]}>
+                      <Text style={styles.olHandleTxt}>↻</Text>
+                    </View>
+                  </GestureDetector>
+                </>
               );
             })()}
             {!strokes.length && !overlay && !captureMode && (
@@ -540,11 +573,7 @@ export default function DrawScreen({ navigation }) {
                 <TouchableOpacity style={styles.canvasIconBtn} onPress={() => navigation.goBack()}>
                   <Text style={styles.canvasIconTxt}>✕</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.canvasIconBtn} onPress={() => Alert.alert(
-                  '그림 그리기 도움말 🎨',
-                  '• 색상과 도구를 선택해 그림을 그려요\n• ↩️ 되돌리기로 실수를 취소할 수 있어요\n• 📐 윤곽선을 선택하면 따라 그리기 도움이 돼요\n• ⛶ 크게 버튼으로 가로 전체화면에서 그려요\n• 다 그렸으면 아래 완성 버튼을 눌러요',
-                  [{ text: '확인' }]
-                )}>
+                <TouchableOpacity style={styles.canvasIconBtn} onPress={() => openTour(false)}>
                   <Text style={styles.canvasIconTxt}>?</Text>
                 </TouchableOpacity>
               </View>
@@ -564,7 +593,7 @@ export default function DrawScreen({ navigation }) {
         </View>
 
         {/* 색상 선택 */}
-        <View style={styles.toolSection}>
+        <View style={styles.toolSection} ref={toolSectionRef}>
           <TouchableOpacity style={styles.paletteToggle} onPress={() => setShowPalette(v => !v)}>
             <View style={[styles.currentColor, { backgroundColor: tool === 'eraser' ? COLORS.white : color },
               tool === 'eraser' && { borderWidth: 1.5, borderColor: COLORS.border }]} />
@@ -583,7 +612,7 @@ export default function DrawScreen({ navigation }) {
         </View>
 
         {/* 도구 */}
-        <View style={styles.tools}>
+        <View style={styles.tools} ref={toolsRowRef}>
           {TOOLS.map(t => (
             <TouchableOpacity key={t.id} onPress={() => setTool(t.id)}
               style={[styles.toolBtn, tool === t.id && (t.id === 'eraser' ? styles.toolBtnEraser : styles.toolBtnActive)]}>
@@ -602,7 +631,7 @@ export default function DrawScreen({ navigation }) {
         </View>
 
         {/* ── 윤곽선 인라인 섹션 ── */}
-        <View style={styles.outlineSection}>
+        <View style={styles.outlineSection} ref={outlineSectionRef}>
           <Text style={styles.outlineSectionTitle}>📐 윤곽선{overlay ? ` · ${overlay.name}` : ''}</Text>
 
           {/* 카테고리 탭 */}
@@ -677,7 +706,7 @@ export default function DrawScreen({ navigation }) {
       </ScrollView>
 
       {/* 하단 고정 완성 버튼 */}
-      <View style={styles.doneBtnWrap}>
+      <View style={[styles.doneBtnWrap, { paddingBottom: 16 + insets.bottom }]}>
         <TouchableOpacity style={styles.doneBtn} onPress={handleDone} activeOpacity={0.85}>
           <Text style={styles.doneBtnText}>✍️ 그림일기로 완성하기</Text>
         </TouchableOpacity>
@@ -686,57 +715,53 @@ export default function DrawScreen({ navigation }) {
       {/* 전체화면 그리기 모달 (가로 3단 레이아웃) */}
       <Modal visible={fullscreen} animationType="fade" statusBarTranslucent
         supportedOrientations={['landscape']} onRequestClose={exitFullscreen}>
-        <GestureHandlerRootView style={{ flex: 1 }}>
-        <SafeAreaView style={styles.fullWrap}>
+        <SafeAreaView style={styles.fullWrap} edges={['top', 'left', 'right', 'bottom']}>
 
           {/* 왼쪽 사이드바: 도구 + 색상 */}
-          <View style={styles.fullLeft}>
-            <View style={styles.fullSep} />
-
-            {/* 도구 버튼 */}
-            {[...TOOLS, { id: 'undo', icon: '↩️', label: '되돌리기' }, { id: 'clear', icon: '🗑️', label: '지우기' }].map(t => (
-              <TouchableOpacity key={t.id}
-                onPress={() => {
-                  if (t.id === 'undo') { setStrokes(s => s.slice(0, -1)); return; }
-                  if (t.id === 'clear') { setStrokes([]); return; }
-                  setTool(t.id);
-                }}
-                style={[styles.fullSideBtn,
-                  tool === t.id && t.id !== 'undo' && t.id !== 'clear' &&
-                  (t.id === 'eraser' ? styles.fullSideBtnEraser : styles.fullSideBtnActive)]}>
-                <Text style={styles.fullSideIcon}>{t.icon}</Text>
-                <Text style={styles.fullSideLabel}>{t.label}</Text>
-              </TouchableOpacity>
-            ))}
-
-            <View style={styles.fullSep} />
-
-            {/* 색상 팔레트 (2열) */}
-            <View style={styles.fullPalette}>
-              {PALETTE.map(c => (
-                <TouchableOpacity key={c} onPress={() => { setColor(c); setTool('pen'); }}
-                  style={[styles.fullDot, { backgroundColor: c },
-                    c === '#FFFFFF' && { borderWidth: 1, borderColor: COLORS.border },
-                    color === c && tool !== 'eraser' && styles.fullDotActive]} />
+          <View style={styles.fullLeft} ref={fullLeftRef}>
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.fullLeftContent}>
+              {/* 도구 버튼 */}
+              {[...TOOLS, { id: 'undo', icon: '↩️', label: '되돌리기' }, { id: 'clear', icon: '🗑️', label: '지우기' }].map(t => (
+                <TouchableOpacity key={t.id}
+                  onPress={() => {
+                    if (t.id === 'undo') { setStrokes(s => s.slice(0, -1)); return; }
+                    if (t.id === 'clear') { setStrokes([]); return; }
+                    setTool(t.id);
+                  }}
+                  style={[styles.fullSideBtn,
+                    tool === t.id && t.id !== 'undo' && t.id !== 'clear' &&
+                    (t.id === 'eraser' ? styles.fullSideBtnEraser : styles.fullSideBtnActive)]}>
+                  <Text style={styles.fullSideIcon}>{t.icon}</Text>
+                  <Text style={styles.fullSideLabel}>{t.label}</Text>
+                </TouchableOpacity>
               ))}
-            </View>
+
+              <View style={styles.fullSep} />
+
+              {/* 색상 팔레트 (2열) */}
+              <View style={styles.fullPalette}>
+                {PALETTE.map(c => (
+                  <TouchableOpacity key={c} onPress={() => { setColor(c); setTool('pen'); }}
+                    style={[styles.fullDot, { backgroundColor: c },
+                      c === '#FFFFFF' && { borderWidth: 1, borderColor: COLORS.border },
+                      color === c && tool !== 'eraser' && styles.fullDotActive]} />
+                ))}
+              </View>
+            </ScrollView>
           </View>
 
           {/* 가운데: 캔버스 */}
           <View style={styles.fullCenter}>
             {/* 캔버스 상단 바: 도움말 + 닫기 */}
-            <View style={styles.fullTopbar}>
-              <TouchableOpacity style={[styles.fullTopbarBtn, styles.fullHelpBtn]} onPress={() => Alert.alert(
-                '크게 그리기 도움말 🎨',
-                '• 왼쪽 도구와 색상으로 그림을 그려요\n• 오른쪽 윤곽선을 탭하면 따라 그리기 도움이 돼요\n• ↩️ 되돌리기로 실수를 취소할 수 있어요\n• ✕ 버튼을 누르면 세로 화면으로 돌아가요',
-                [{ text: '확인' }]
-              )}>
+            <View style={styles.fullTopbar} ref={fullTopbarRef}>
+              <TouchableOpacity style={[styles.fullTopbarBtn, styles.fullHelpBtn]} onPress={() => openTour(true)}>
                 <Text style={styles.fullTopbarBtnTxt}>?</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.fullTopbarBtn} onPress={exitFullscreen}>
                 <Text style={styles.fullTopbarBtnTxt}>✕</Text>
               </TouchableOpacity>
             </View>
+            <GestureHandlerRootView style={{ flex: 1 }}>
             <GestureDetector gesture={fullGesture}>
             <View style={styles.fullCanvas}
               onLayout={onFullCanvasLayout}>
@@ -773,10 +798,11 @@ export default function DrawScreen({ navigation }) {
               )}
             </View>
             </GestureDetector>
+            </GestureHandlerRootView>
           </View>
 
           {/* 오른쪽 사이드바: 윤곽선 */}
-          <View style={styles.fullRight}>
+          <View style={styles.fullRight} ref={fullRightRef}>
             <Text style={styles.fullRightTitle}>⭐ 윤곽선</Text>
             <View style={styles.fullQdRow}>
               <TextInput style={styles.fullQdInput} value={fullQdQuery}
@@ -804,9 +830,14 @@ export default function DrawScreen({ navigation }) {
           </View>
 
         </SafeAreaView>
-        </GestureHandlerRootView>
+        {/* landscape 도움말: fullscreen Modal 내부에서 렌더 → 좌표계 일치 */}
+        {showTour && tourLandscape && (
+          <DrawTour visible={true} onClose={() => setShowTour(false)} landscape={true} spots={tourSpots} />
+        )}
       </Modal>
 
+      {/* portrait 도움말: 독립 Modal */}
+      <DrawTour visible={showTour && !tourLandscape} onClose={() => setShowTour(false)} landscape={false} spots={tourSpots} />
     </SafeAreaView>
   );
 }
@@ -817,15 +848,14 @@ const styles = StyleSheet.create({
   backBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: COLORS.purpleSoft, alignItems: 'center', justifyContent: 'center' },
   backBtnText: { fontSize: 18, color: COLORS.purple, fontWeight: '700' },
   title: { fontSize: 18, fontWeight: '900', color: COLORS.ink, flex: 1 },
-  overlayRemoveBtn: { backgroundColor: COLORS.orangeLight, borderRadius: 12, paddingHorizontal: 10, paddingVertical: 6 },
-  overlayRemoveTxt: { fontSize: 12, fontWeight: '700', color: COLORS.orange },
-  overlayBar: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 16, paddingBottom: 8 },
-  overlayBarBtn: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 14, borderWidth: 1.5, borderColor: COLORS.border, backgroundColor: COLORS.white },
-  overlayBarBtnActive: { borderColor: COLORS.purple, backgroundColor: COLORS.purpleSoft },
-  overlayBarTxt: { fontSize: 12, fontWeight: '800', color: COLORS.muted },
-  overlayBarTxtActive: { color: COLORS.purple },
-  overlayBarRemove: { marginLeft: 'auto', paddingHorizontal: 12, paddingVertical: 7, borderRadius: 14, backgroundColor: COLORS.orangeLight },
-  overlayBarRemoveTxt: { fontSize: 12, fontWeight: '800', color: COLORS.orange },
+  olHandle: {
+    position: 'absolute', backgroundColor: '#7B5EA7',
+    borderWidth: 2, borderColor: '#fff',
+    alignItems: 'center', justifyContent: 'center',
+    elevation: 6, shadowColor: '#000', shadowOpacity: 0.25, shadowRadius: 4,
+  },
+  olHandleRemove: { backgroundColor: '#FF5C5C' },
+  olHandleTxt: { fontSize: 11, color: '#fff', fontWeight: '900' },
   canvasContainer: { marginHorizontal: 16, position: 'relative' },
   canvasWrap: { borderRadius: 16, overflow: 'hidden', borderWidth: 1.5, borderColor: COLORS.border, backgroundColor: COLORS.white },
   micBtn: {
@@ -902,42 +932,44 @@ const styles = StyleSheet.create({
   canvasIconTxt: { fontSize: 14, color: COLORS.white, fontWeight: '900' },
 
   // 전체화면 3단 레이아웃
-  fullWrap: { flex: 1, flexDirection: 'row', backgroundColor: COLORS.bg },
+  fullWrap: { flex: 1, flexDirection: 'row', backgroundColor: COLORS.white },
 
   // 왼쪽 사이드바
   fullLeft: {
-    width: 100, backgroundColor: COLORS.white,
+    width: 88, backgroundColor: COLORS.white,
     borderRightWidth: 1.5, borderRightColor: COLORS.border,
-    paddingVertical: 12, paddingHorizontal: 8, gap: 6,
   },
-  fullSep: { height: 1, backgroundColor: COLORS.border, marginVertical: 4 },
+  fullLeftContent: {
+    paddingVertical: 10, paddingHorizontal: 7, gap: 5,
+  },
+  fullSep: { height: 1.5, backgroundColor: COLORS.border, marginVertical: 2 },
   fullSideBtn: {
-    alignItems: 'center', paddingVertical: 8, borderRadius: 10,
+    alignItems: 'center', paddingVertical: 7, borderRadius: 10,
     borderWidth: 1.5, borderColor: COLORS.border, backgroundColor: COLORS.bg, gap: 2,
   },
   fullSideBtnActive: { backgroundColor: COLORS.purpleSoft, borderColor: COLORS.purple },
   fullSideBtnEraser: { backgroundColor: COLORS.orangeLight, borderColor: COLORS.orange },
-  fullSideIcon: { fontSize: 18 },
+  fullSideIcon: { fontSize: 17 },
   fullSideLabel: { fontSize: 9, fontWeight: '700', color: COLORS.muted },
   fullPalette: { flexDirection: 'row', flexWrap: 'wrap', gap: 5, justifyContent: 'center' },
-  fullDot: { width: 24, height: 24, borderRadius: 12 },
+  fullDot: { width: 22, height: 22, borderRadius: 11 },
   fullDotActive: { borderWidth: 2.5, borderColor: COLORS.purple, transform: [{ scale: 1.15 }] },
 
   // 가운데 캔버스
-  fullCenter: { flex: 1, backgroundColor: COLORS.white, flexDirection: 'column' },
+  fullCenter: { flex: 1, flexDirection: 'column', borderRightWidth: 1.5, borderRightColor: COLORS.border },
   fullTopbar: {
-    height: 44, flexDirection: 'row', alignItems: 'center',
+    height: 38, flexDirection: 'row', alignItems: 'center',
     justifyContent: 'flex-end', paddingHorizontal: 8, gap: 6,
     backgroundColor: COLORS.bg,
     borderBottomWidth: 1.5, borderBottomColor: COLORS.border,
   },
   fullTopbarBtn: {
-    width: 32, height: 32, borderRadius: 16,
+    width: 28, height: 28, borderRadius: 14,
     backgroundColor: COLORS.purpleSoft,
     alignItems: 'center', justifyContent: 'center',
   },
   fullHelpBtn: { backgroundColor: COLORS.purpleLight },
-  fullTopbarBtnTxt: { fontSize: 14, fontWeight: '900', color: COLORS.purple },
+  fullTopbarBtnTxt: { fontSize: 13, fontWeight: '900', color: COLORS.purple },
   fullCanvas: { flex: 1, backgroundColor: COLORS.white, alignItems: 'center', justifyContent: 'center' },
 
   // 오른쪽 사이드바

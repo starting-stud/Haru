@@ -3,7 +3,7 @@ import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   Image, Modal, Alert, TextInput,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ImagePicker from 'expo-image-picker';
@@ -108,7 +108,8 @@ function ProfileEditModal({ visible, user, onClose, onSave }) {
   );
 }
 
-export default function MyScreen({ navigation }) {
+export default function MyScreen({ navigation, onLogout }) {
+  const insets = useSafeAreaInsets();
   const [diaries, setDiaries] = useState([]);
   const [selected, setSelected] = useState(null);
   const [chatHistory, setChatHistory] = useState([]);
@@ -124,7 +125,13 @@ export default function MyScreen({ navigation }) {
   useEffect(() => {
     if (selected) {
       setChatOpen(false);
-      getChatHistory(selected.id).then(setChatHistory).catch(() => setChatHistory([]));
+      // chat_general에서 일기 작성 전후 2시간 메시지만 필터
+      getChatHistory('general').then(all => {
+        const base = new Date(selected.created_at || selected.date).getTime();
+        const from = base - 30 * 60 * 1000;    // 30분 전
+        const to   = base + 2 * 60 * 60 * 1000; // 2시간 후
+        setChatHistory(all.filter(m => m.ts >= from && m.ts <= to));
+      }).catch(() => setChatHistory([]));
     } else {
       setChatHistory([]);
       setChatOpen(false);
@@ -168,7 +175,7 @@ export default function MyScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.safe} edges={[]}>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120 }}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120 + insets.bottom }}>
 
         {/* 프로필 카드 */}
         <View style={styles.profileCard}>
@@ -203,6 +210,20 @@ export default function MyScreen({ navigation }) {
             <Text style={styles.editBtnText}>편집</Text>
           </TouchableOpacity>
         </View>
+
+        {/* 로그아웃 */}
+        {onLogout && (
+          <TouchableOpacity
+            style={styles.logoutBtn}
+            activeOpacity={0.7}
+            onPress={() => Alert.alert('로그아웃', '로그아웃 하시겠어요?', [
+              { text: '취소', style: 'cancel' },
+              { text: '로그아웃', style: 'destructive', onPress: onLogout },
+            ])}
+          >
+            <Text style={styles.logoutText}>로그아웃</Text>
+          </TouchableOpacity>
+        )}
 
         {/* 일기 목록 */}
         <Text style={styles.sectionTitle}>📚 내가 그린 그림일기</Text>
@@ -288,7 +309,11 @@ export default function MyScreen({ navigation }) {
 
             <View style={styles.modalBtns}>
               <TouchableOpacity style={styles.chatBtn}
-                onPress={() => { setSelected(null); navigation.navigate('ChatbotModal', { diary: selected }); }}>
+                onPress={async () => {
+                  await AsyncStorage.setItem('haruFocusDiary', JSON.stringify(selected));
+                  setSelected(null);
+                  navigation.navigate('Home');
+                }}>
                 <Text style={styles.chatBtnText}>💬 하루와 이야기하기</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.deleteBtn}
@@ -343,6 +368,13 @@ const styles = StyleSheet.create({
   editBtn: { backgroundColor: COLORS.purpleSoft, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 7, borderWidth: 1.5, borderColor: COLORS.purple },
   editBtnText: { fontSize: 13, fontWeight: '800', color: COLORS.purple },
 
+  logoutBtn: {
+    marginHorizontal: 16, marginBottom: 16,
+    paddingVertical: 13, borderRadius: 16,
+    borderWidth: 1.5, borderColor: COLORS.border,
+    backgroundColor: COLORS.white, alignItems: 'center',
+  },
+  logoutText: { fontSize: 14, fontWeight: '800', color: COLORS.muted },
   sectionTitle: { fontSize: 15, fontWeight: '800', color: COLORS.ink, marginHorizontal: 16, marginBottom: 8 },
   empty: { alignItems: 'center', paddingVertical: 40, gap: 12 },
   emptyIcon: { fontSize: 48 },

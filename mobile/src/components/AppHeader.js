@@ -3,7 +3,22 @@ import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS } from '../constants/theme';
 
-export default function AppHeader({ onLogout }) {
+const HELP_TEXT = `🌼 하루 탭
+AI 하루와 오늘 일기에 대해 대화해요.
+음성으로도 말할 수 있어요.
+
+📔 일기 탭
+이웃들의 공개 그림일기를 구경하고
+감정 표현과 댓글을 남겨보세요.
+
+👤 나 탭
+내가 그린 그림일기를 모아볼 수 있어요.
+
+✏️ 그림 그리기 버튼
+홈 화면의 보라색 버튼을 눌러
+오늘의 그림일기를 그려보세요!`;
+
+export default function AppHeader() {
   const insets = useSafeAreaInsets();
   const now = new Date();
   const DAYS = ['일', '월', '화', '수', '목', '금', '토'];
@@ -22,18 +37,13 @@ export default function AppHeader({ onLogout }) {
         <View style={styles.dateWrap}>
           <Text style={styles.dateText}>{dateLabel}</Text>
         </View>
-        {onLogout && (
-          <TouchableOpacity
-            style={styles.logoutBtn}
-            onPress={() => Alert.alert('로그아웃', '로그아웃 하시겠어요?', [
-              { text: '취소', style: 'cancel' },
-              { text: '로그아웃', style: 'destructive', onPress: onLogout },
-            ])}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.logoutText}>로그아웃</Text>
-          </TouchableOpacity>
-        )}
+        <TouchableOpacity
+          style={styles.helpBtn}
+          onPress={() => Alert.alert('앱 도움말', HELP_TEXT)}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.helpText}>?</Text>
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -56,6 +66,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12, paddingVertical: 6,
   },
   dateText: { fontSize: 13, fontWeight: '800', color: COLORS.purple },
-  logoutBtn: { height: 34, paddingHorizontal: 12, borderRadius: 17, borderWidth: 1.5, borderColor: COLORS.border, backgroundColor: COLORS.white, alignItems: 'center', justifyContent: 'center' },
-  logoutText: { fontSize: 12, fontWeight: '800', color: COLORS.muted },
+  helpBtn: { width: 34, height: 34, borderRadius: 17, borderWidth: 1.5, borderColor: COLORS.purple, backgroundColor: COLORS.purpleSoft, alignItems: 'center', justifyContent: 'center' },
+  helpText: { fontSize: 16, fontWeight: '900', color: COLORS.purple },
 });
