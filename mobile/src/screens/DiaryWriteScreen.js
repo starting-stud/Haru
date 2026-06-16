@@ -1,18 +1,25 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  ScrollView, Image, ActivityIndicator, Alert,
+  ScrollView, Image, ActivityIndicator, Alert, Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useAudioRecorder, AudioModule, RecordingPresets } from 'expo-audio';
 import { COLORS } from '../constants/theme';
 import { saveDiary } from '../utils/storage';
+import { fetchSpeech } from '../utils/api';
 
 export default function DiaryWriteScreen({ navigation, route }) {
   const { imageUri } = route.params || {};
   const [text, setText] = useState('');
   const [privacy, setPrivacy] = useState('비공개');
   const [saving, setSaving] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [transcribing, setTranscribing] = useState(false);
+  const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+  const isRecordingRef = useRef(false);
 
   const now = new Date();
   const dateLabel = now.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' });
@@ -26,7 +33,6 @@ export default function DiaryWriteScreen({ navigation, route }) {
         privacy,
         image: imageUri,
       });
-      // 새 일기를 하루에게 전달 — 탭 열릴 때 자연스럽게 반응
       await AsyncStorage.setItem('haruNewDiary', JSON.stringify(saved));
       navigation.reset({
         index: 0,
@@ -36,6 +42,49 @@ export default function DiaryWriteScreen({ navigation, route }) {
       Alert.alert('오류', '저장 중 문제가 생겼어요. 다시 시도해주세요.');
     }
     setSaving(false);
+  };
+
+  const stopRecording = async () => {
+    if (!isRecordingRef.current) return;
+    isRecordingRef.current = false;
+    setIsRecording(false);
+    pulseAnim.stopAnimation();
+    pulseAnim.setValue(1);
+    try {
+      await recorder.stop();
+      const uri = recorder.uri;
+      if (!uri) return;
+      setTranscribing(true);
+      const { text: transcribed } = await fetchSpeech(uri);
+      if (transcribed?.trim()) {
+        setText(prev => prev ? prev + ' ' + transcribed.trim() : transcribed.trim());
+      }
+    } catch {
+      Alert.alert('오류', '음성 인식에 실패했어요. 다시 시도해주세요.');
+    }
+    setTranscribing(false);
+  };
+
+  const startRecording = async () => {
+    if (transcribing) return;
+    if (isRecordingRef.current) { await stopRecording(); return; }
+    try {
+      const { granted } = await AudioModule.requestRecordingPermissionsAsync();
+      if (!granted) { Alert.alert('권한 필요', '마이크 사용 권한이 필요해요'); return; }
+      await recorder.prepareToRecordAsync();
+      recorder.record();
+      isRecordingRef.current = true;
+      setIsRecording(true);
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulseAnim, { toValue: 1.2, duration: 600, useNativeDriver: true }),
+          Animated.timing(pulseAnim, { toValue: 1, duration: 600, useNativeDriver: true }),
+        ])
+      ).start();
+      setTimeout(stopRecording, 60000);
+    } catch {
+      Alert.alert('오류', '마이크를 사용할 수 없어요.');
+    }
   };
 
   return (
@@ -65,16 +114,26 @@ export default function DiaryWriteScreen({ navigation, route }) {
           )}
 
           {/* 글쓰기 영역 */}
-          <TextInput
-            style={styles.textInput}
-            multiline
-            placeholder="오늘 하루를 기록해보세요..."
-            placeholderTextColor={COLORS.muted}
-            value={text}
-            onChangeText={setText}
-            maxLength={750}
-            textAlignVertical="top"
-          />
+          <View style={{ position: 'relative' }}>
+            <TextInput
+              style={styles.textInput}
+              multiline
+              placeholder="오늘 하루를 기록해보세요..."
+              placeholderTextColor={COLORS.muted}
+              value={text}
+              onChangeText={setText}
+              maxLength={750}
+              textAlignVertical="top"
+            />
+            <Animated.View style={[styles.micBtn, isRecording && styles.micBtnActive, { transform: [{ scale: pulseAnim }] }]}>
+              <TouchableOpacity onPress={startRecording} style={styles.micTouch} disabled={transcribing}>
+                {transcribing
+                  ? <ActivityIndicator color={COLORS.white} size="small" />
+                  : <Text style={styles.micEmoji}>{isRecording ? '⏹' : '🎤'}</Text>
+                }
+              </TouchableOpacity>
+            </Animated.View>
+          </View>
           <Text style={styles.charCount}>{text.length}/750</Text>
         </View>
 
@@ -125,10 +184,21 @@ const styles = StyleSheet.create({
   imgHint: { fontSize: 11, color: COLORS.muted, marginTop: 4 },
   textInput: {
     fontSize: 17, color: COLORS.ink, lineHeight: 32,
-    minHeight: 160, padding: 16,
+    minHeight: 160, padding: 16, paddingBottom: 52,
     borderTopWidth: 1, borderTopColor: COLORS.border,
     borderStyle: 'dashed',
   },
+  micBtn: {
+    position: 'absolute', bottom: 12, right: 12,
+    width: 72, height: 72, borderRadius: 36,
+    backgroundColor: COLORS.purple,
+    alignItems: 'center', justifyContent: 'center',
+    elevation: 6, shadowColor: '#000', shadowOpacity: 0.25,
+    shadowRadius: 10, shadowOffset: { width: 0, height: 3 },
+  },
+  micBtnActive: { backgroundColor: '#FF4444' },
+  micTouch: { flex: 1, width: '100%', alignItems: 'center', justifyContent: 'center' },
+  micEmoji: { fontSize: 32 },
   charCount: { fontSize: 11, color: COLORS.muted, textAlign: 'right', paddingRight: 14, paddingBottom: 10 },
   privacySection: { marginHorizontal: 16, marginBottom: 12 },
   privacyTitle: { fontSize: 14, fontWeight: '800', color: COLORS.ink, marginBottom: 8 },

@@ -80,12 +80,18 @@ export default function DrawScreen({ navigation }) {
   const colorRef = useRef(PALETTE[0]);
   useEffect(() => { toolRef.current = tool; }, [tool]);
   useEffect(() => { colorRef.current = color; }, [color]);
+  useEffect(() => {
+    return () => {
+      ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT);
+    };
+  }, []);
 
   // 전체화면 모드
   const [fullscreen, setFullscreen] = useState(false);
   const [lsDims, setLsDims] = useState({ w: 1, h: 1 });
   const lsDimsRef = useRef({ w: 1, h: 1 });
   const fullLayoutDone = useRef(false);
+  const fullscreenActiveRef = useRef(false);
   const fullCurrentStroke = useRef(null);
   const [, setFullRenderTick] = useState(0);
   const [fullQdQuery, setFullQdQuery] = useState('');
@@ -95,21 +101,24 @@ export default function DrawScreen({ navigation }) {
   const enterFullscreen = async () => {
     fullLayoutDone.current = false;
     await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
+    fullscreenActiveRef.current = true;
     setFullscreen(true);
   };
 
   const exitFullscreen = async () => {
+    fullscreenActiveRef.current = false;
     const { w, h } = lsDimsRef.current;
     if (w > 1 && h > 1) {
       setStrokes(prev => scaleStrokes(prev, w, h, CANVAS_W, CANVAS_H));
     }
+    await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT);
     setFullscreen(false);
     fullLayoutDone.current = false;
-    await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT);
   };
 
   // 전체화면 캔버스가 실제 렌더된 뒤 크기 측정
   const onFullCanvasLayout = (e) => {
+    if (!fullscreenActiveRef.current) return;
     const { width: w, height: h } = e.nativeEvent.layout;
     if (w < 10 || h < 10) return;
     if (!fullLayoutDone.current) {
@@ -139,6 +148,7 @@ export default function DrawScreen({ navigation }) {
 
   // 전체화면 GestureDetector
   const fullGesture = Gesture.Pan()
+    .enabled(!overlay || overlayLocked)
     .minDistance(0)
     .runOnJS(true)
     .onBegin((e) => {
@@ -259,7 +269,7 @@ export default function DrawScreen({ navigation }) {
   useEffect(() => { overlayBoxRef.current = overlayBox; }, [overlayBox]);
 
   const overlayMoveStart = useRef({});
-  const overlayResizeStart = useRef({});
+  const overlayPinchStart = useRef({});
   const overlayRotateStart = useRef({});
 
   const moveGesture = Gesture.Pan()
@@ -273,15 +283,29 @@ export default function DrawScreen({ navigation }) {
       setOverlayBox(b => ({ ...b, cx: s.cx + e.translationX, cy: s.cy + e.translationY }));
     });
 
-  const resizeGesture = Gesture.Pan()
+  const fullMoveGesture = Gesture.Pan()
     .runOnJS(true).minDistance(0)
     .onBegin(() => {
-      const { w, h } = overlayBoxRef.current;
-      overlayResizeStart.current = { w, h };
+      const { cx, cy } = overlayBoxRef.current;
+      overlayMoveStart.current = { cx, cy };
     })
     .onUpdate((e) => {
-      const s = overlayResizeStart.current;
-      const newW = Math.max(60, s.w + e.translationX * 2);
+      const { w: dw, h: dh } = lsDimsRef.current;
+      const scW = dw > 1 ? dw / CANVAS_W : 1;
+      const scH = dh > 1 ? dh / CANVAS_H : 1;
+      const s = overlayMoveStart.current;
+      setOverlayBox(b => ({ ...b, cx: s.cx + e.translationX / scW, cy: s.cy + e.translationY / scH }));
+    });
+
+  const pinchGesture = Gesture.Pinch()
+    .runOnJS(true)
+    .onBegin(() => {
+      const { w, h } = overlayBoxRef.current;
+      overlayPinchStart.current = { w, h };
+    })
+    .onUpdate((e) => {
+      const s = overlayPinchStart.current;
+      const newW = Math.max(60, s.w * e.scale);
       const ratio = s.h / s.w;
       setOverlayBox(b => ({ ...b, w: newW, h: newW * ratio }));
     });
@@ -451,27 +475,13 @@ export default function DrawScreen({ navigation }) {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <Text style={styles.backBtnText}>←</Text>
         </TouchableOpacity>
-        <Text style={styles.title}>그림 그리기 🎨</Text>
-      </View>
-
-      {/* 오버레이 컨트롤 바 */}
-      {overlay && (
-        <View style={styles.overlayBar}>
-          <Text style={styles.overlayBarName} numberOfLines={1}>{overlay.name}</Text>
-          {overlayLocked ? (
-            <TouchableOpacity style={styles.overlayEditBtn} onPress={() => setOverlayLocked(false)}>
-              <Text style={styles.overlayEditTxt}>✎ 다시 조정</Text>
-            </TouchableOpacity>
-          ) : (
-            <TouchableOpacity style={styles.overlayConfirmBtn} onPress={() => setOverlayLocked(true)}>
-              <Text style={styles.overlayConfirmTxt}>✓ 배치 완료</Text>
-            </TouchableOpacity>
-          )}
-          <TouchableOpacity style={styles.overlayRemoveBtn} onPress={removeOverlay}>
-            <Text style={styles.overlayRemoveTxt}>✕ 제거</Text>
-          </TouchableOpacity>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.title}>그림 그리기 🎨</Text>
+          <Text style={styles.headerDate}>
+            {new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' })}
+          </Text>
         </View>
-      )}
+      </View>
 
       {/* 스크롤 영역 */}
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 16 }}>
@@ -495,36 +505,38 @@ export default function DrawScreen({ navigation }) {
               const scX = w / 24, scY = h / 24;
               const boxLeft = cx - w / 2, boxTop = cy - h / 2;
 
-              // 공통: SVG 윤곽선 + 점선 테두리 (터치 통과)
-              const outlineSvg = (
+              // 배치 완료(locked) → 정적 가이드만 표시, 핸들 없음
+              if (overlayLocked) return (
                 <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-                  <View style={{
-                    position: 'absolute', left: boxLeft, top: boxTop,
-                    width: w, height: h,
-                    transform: [{ rotate: `${rot}deg` }],
-                  }}>
+                  <View style={{ position: 'absolute', left: boxLeft, top: boxTop, width: w, height: h, transform: [{ rotate: `${rot}deg` }] }}>
                     <Svg width={w} height={h}>
                       <Path d={overlay.path} stroke="#7B5EA7" strokeWidth={0.5}
                         fill="none" strokeLinecap="round" strokeLinejoin="round"
-                        strokeDasharray="2 3" opacity={overlayLocked ? 0.45 : 0.65}
+                        strokeDasharray="2 3" opacity={0.45}
                         transform={`scale(${scX}, ${scY})`} />
                     </Svg>
-                    {!overlayLocked && (
-                      <View style={{ ...StyleSheet.absoluteFillObject, borderWidth: 1.5, borderColor: '#7B5EA7', borderStyle: 'dashed', borderRadius: 4 }} />
-                    )}
                   </View>
                 </View>
               );
 
-              // 배치 완료(locked) → 정적 가이드만 표시, 핸들 없음
-              if (overlayLocked) return outlineSvg;
-
-              // 조정 중 → 핸들 표시
+              // 조정 중 → 핀치로 크기 조절 + 이동/회전 핸들
               const handles = getHandlePositions(overlayBox);
               const HS = 34;
               return (
                 <>
-                  {outlineSvg}
+                  <View pointerEvents="box-none" style={StyleSheet.absoluteFill}>
+                    <GestureDetector gesture={Gesture.Simultaneous(moveGesture, pinchGesture)}>
+                      <View style={{ position: 'absolute', left: boxLeft, top: boxTop, width: w, height: h, transform: [{ rotate: `${rot}deg` }] }}>
+                        <Svg width={w} height={h}>
+                          <Path d={overlay.path} stroke="#7B5EA7" strokeWidth={0.5}
+                            fill="none" strokeLinecap="round" strokeLinejoin="round"
+                            strokeDasharray="2 3" opacity={0.65}
+                            transform={`scale(${scX}, ${scY})`} />
+                        </Svg>
+                        <View style={{ ...StyleSheet.absoluteFillObject, borderWidth: 1.5, borderColor: '#7B5EA7', borderStyle: 'dashed', borderRadius: 4 }} />
+                      </View>
+                    </GestureDetector>
+                  </View>
                   {/* 회전 핸들 연결선 */}
                   <View pointerEvents="none" style={StyleSheet.absoluteFill}>
                     <Svg width={CANVAS_W} height={CANVAS_H} style={StyleSheet.absoluteFill}>
@@ -536,18 +548,20 @@ export default function DrawScreen({ navigation }) {
                       })()}
                     </Svg>
                   </View>
-                  {/* 이동 핸들 — 왼쪽 위 */}
-                  <GestureDetector gesture={moveGesture}>
-                    <View style={[styles.olHandle, { left: handles.tl.x - HS/2, top: handles.tl.y - HS/2, width: HS, height: HS, borderRadius: HS/2 }]}>
-                      <Text style={styles.olHandleTxt}>이동</Text>
-                    </View>
-                  </GestureDetector>
-                  {/* 크기 핸들 — 오른쪽 아래 */}
-                  <GestureDetector gesture={resizeGesture}>
-                    <View style={[styles.olHandle, { left: handles.br.x - HS/2, top: handles.br.y - HS/2, width: HS, height: HS, borderRadius: 8 }]}>
-                      <Text style={styles.olHandleTxt}>크기</Text>
-                    </View>
-                  </GestureDetector>
+                  {/* 확정 버튼 — 왼쪽 위 */}
+                  <TouchableOpacity
+                    style={[styles.olHandle, styles.olHandleConfirm, { left: handles.tl.x - HS/2, top: handles.tl.y - HS/2, width: HS, height: HS, borderRadius: HS/2 }]}
+                    onPress={() => setOverlayLocked(true)}
+                  >
+                    <Text style={styles.olHandleTxt}>✓</Text>
+                  </TouchableOpacity>
+                  {/* 제거 버튼 — 오른쪽 위 */}
+                  <TouchableOpacity
+                    style={[styles.olHandle, styles.olHandleRemove, { left: handles.tr.x - HS/2, top: handles.tr.y - HS/2, width: HS, height: HS, borderRadius: HS/2 }]}
+                    onPress={removeOverlay}
+                  >
+                    <Text style={styles.olHandleTxt}>✕</Text>
+                  </TouchableOpacity>
                   {/* 회전 핸들 — 위 중앙 */}
                   <GestureDetector gesture={rotateGesture}>
                     <View style={[styles.olHandle, { left: handles.rot.x - HS/2, top: handles.rot.y - HS/2, width: HS, height: HS, borderRadius: HS/2 }]}>
@@ -570,9 +584,6 @@ export default function DrawScreen({ navigation }) {
             )}
             {!captureMode && (
               <View style={styles.canvasTopRight}>
-                <TouchableOpacity style={styles.canvasIconBtn} onPress={() => navigation.goBack()}>
-                  <Text style={styles.canvasIconTxt}>✕</Text>
-                </TouchableOpacity>
                 <TouchableOpacity style={styles.canvasIconBtn} onPress={() => openTour(false)}>
                   <Text style={styles.canvasIconTxt}>?</Text>
                 </TouchableOpacity>
@@ -769,9 +780,8 @@ export default function DrawScreen({ navigation }) {
                 width={lsDims.w > 1 ? lsDims.w : '100%'}
                 height={lsDims.h > 1 ? lsDims.h : '100%'}
                 style={StyleSheet.absoluteFill}>
-                {overlay && (() => {
+                {overlay && overlayLocked && (() => {
                   const { cx, cy, w, h, rot } = overlayBox;
-                  // 전체화면 캔버스 비율로 스케일
                   const scaleW = lsDims.w / CANVAS_W;
                   const scaleH = lsDims.h / CANVAS_H;
                   const fCx = cx * scaleW, fCy = cy * scaleH;
@@ -780,7 +790,7 @@ export default function DrawScreen({ navigation }) {
                     <G transform={`translate(${fCx}, ${fCy}) rotate(${rot}) translate(${-fW/2}, ${-fH/2})`}>
                       <Path d={overlay.path} stroke={COLORS.purple}
                         strokeWidth={0.6} fill="none" strokeLinecap="round"
-                        strokeLinejoin="round" strokeDasharray="2 3" opacity={0.5}
+                        strokeLinejoin="round" strokeDasharray="2 3" opacity={0.45}
                         transform={`scale(${fW / 24}, ${fH / 24})`} />
                     </G>
                   );
@@ -793,6 +803,59 @@ export default function DrawScreen({ navigation }) {
                     fill="none" strokeLinecap="round" strokeLinejoin="round" />
                 )}
               </Svg>
+              {overlay && !overlayLocked && lsDims.w > 1 && (() => {
+                const { cx, cy, w, h, rot } = overlayBox;
+                const scW = lsDims.w / CANVAS_W, scH = lsDims.h / CANVAS_H;
+                const fCx = cx * scW, fCy = cy * scH;
+                const fW = w * scW, fH = h * scH;
+                const fBoxLeft = fCx - fW / 2, fBoxTop = fCy - fH / 2;
+                const handles = getHandlePositions({ cx: fCx, cy: fCy, w: fW, h: fH, rot });
+                const HS = 34;
+                return (
+                  <>
+                    <View pointerEvents="box-none" style={StyleSheet.absoluteFill}>
+                      <GestureDetector gesture={Gesture.Simultaneous(fullMoveGesture, pinchGesture)}>
+                        <View style={{ position: 'absolute', left: fBoxLeft, top: fBoxTop, width: fW, height: fH, transform: [{ rotate: `${rot}deg` }] }}>
+                          <Svg width={fW} height={fH}>
+                            <Path d={overlay.path} stroke="#7B5EA7" strokeWidth={0.5}
+                              fill="none" strokeLinecap="round" strokeLinejoin="round"
+                              strokeDasharray="2 3" opacity={0.65}
+                              transform={`scale(${fW / 24}, ${fH / 24})`} />
+                          </Svg>
+                          <View style={{ ...StyleSheet.absoluteFillObject, borderWidth: 1.5, borderColor: '#7B5EA7', borderStyle: 'dashed', borderRadius: 4 }} />
+                        </View>
+                      </GestureDetector>
+                    </View>
+                    <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+                      <Svg width={lsDims.w} height={lsDims.h} style={StyleSheet.absoluteFill}>
+                        {(() => {
+                          const θ = rot * Math.PI / 180;
+                          const tcX = fCx - (fH / 2) * Math.sin(θ);
+                          const tcY = fCy - (fH / 2) * Math.cos(θ);
+                          return <Path d={`M${tcX},${tcY} L${handles.rot.x},${handles.rot.y}`} stroke="#7B5EA7" strokeWidth={1.5} />;
+                        })()}
+                      </Svg>
+                    </View>
+                    <TouchableOpacity
+                      style={[styles.olHandle, styles.olHandleConfirm, { left: handles.tl.x - HS/2, top: handles.tl.y - HS/2, width: HS, height: HS, borderRadius: HS/2 }]}
+                      onPress={() => setOverlayLocked(true)}
+                    >
+                      <Text style={styles.olHandleTxt}>✓</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.olHandle, styles.olHandleRemove, { left: handles.tr.x - HS/2, top: handles.tr.y - HS/2, width: HS, height: HS, borderRadius: HS/2 }]}
+                      onPress={removeOverlay}
+                    >
+                      <Text style={styles.olHandleTxt}>✕</Text>
+                    </TouchableOpacity>
+                    <GestureDetector gesture={rotateGesture}>
+                      <View style={[styles.olHandle, { left: handles.rot.x - HS/2, top: handles.rot.y - HS/2, width: HS, height: HS, borderRadius: HS/2 }]}>
+                        <Text style={styles.olHandleTxt}>↻</Text>
+                      </View>
+                    </GestureDetector>
+                  </>
+                );
+              })()}
               {!strokes.length && !overlay && (
                 <Text style={styles.hint}>크게 그려보세요 ✏️</Text>
               )}
@@ -847,13 +910,15 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, paddingVertical: 10 },
   backBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: COLORS.purpleSoft, alignItems: 'center', justifyContent: 'center' },
   backBtnText: { fontSize: 18, color: COLORS.purple, fontWeight: '700' },
-  title: { fontSize: 18, fontWeight: '900', color: COLORS.ink, flex: 1 },
+  title: { fontSize: 18, fontWeight: '900', color: COLORS.ink },
+  headerDate: { fontSize: 12, fontWeight: '700', color: COLORS.muted, marginTop: 1 },
   olHandle: {
     position: 'absolute', backgroundColor: '#7B5EA7',
     borderWidth: 2, borderColor: '#fff',
     alignItems: 'center', justifyContent: 'center',
     elevation: 6, shadowColor: '#000', shadowOpacity: 0.25, shadowRadius: 4,
   },
+  olHandleConfirm: { backgroundColor: '#4CAF50' },
   olHandleRemove: { backgroundColor: '#FF5C5C' },
   olHandleTxt: { fontSize: 11, color: '#fff', fontWeight: '900' },
   canvasContainer: { marginHorizontal: 16, position: 'relative' },

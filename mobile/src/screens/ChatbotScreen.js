@@ -9,14 +9,19 @@ import { COLORS } from '../constants/theme';
 import { fetchSpeech } from '../utils/api';
 import { useChatbot } from '../hooks/useChatbot';
 
-function Bubble({ role, content }) {
+function Bubble({ role, content, onLongPress }) {
   const isAI = role === 'assistant';
   return (
     <View style={[styles.bubbleWrap, isAI ? styles.bubbleWrapAI : styles.bubbleWrapUser]}>
       {isAI && <View style={styles.aiAvatar}><Text style={{ fontSize: 18 }}>🌼</Text></View>}
-      <View style={[styles.bubble, isAI ? styles.bubbleAI : styles.bubbleUser]}>
+      <TouchableOpacity
+        onLongPress={onLongPress}
+        delayLongPress={600}
+        activeOpacity={0.85}
+        style={[styles.bubble, isAI ? styles.bubbleAI : styles.bubbleUser]}
+      >
         <Text style={[styles.bubbleText, !isAI && styles.bubbleTextUser]}>{content}</Text>
-      </View>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -28,7 +33,7 @@ export default function ChatbotScreen() {
   const [isRecording, setIsRecording] = useState(false);
   const listRef = useRef(null);
   const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
-  const { messages, loading, send, initGreeting, ready } = useChatbot();
+  const { messages, loading, send, initGreeting, ready, deleteMsg } = useChatbot();
 
   useEffect(() => {
     if (!ready) return;
@@ -84,7 +89,16 @@ export default function ChatbotScreen() {
           ref={listRef}
           data={messages}
           keyExtractor={item => String(item.id)}
-          renderItem={({ item }) => <Bubble role={item.role} content={item.content} />}
+          renderItem={({ item }) => (
+            <Bubble
+              role={item.role}
+              content={item.content}
+              onLongPress={() => Alert.alert('메시지 삭제', '이 메시지를 삭제할까요?', [
+                { text: '취소', style: 'cancel' },
+                { text: '삭제', style: 'destructive', onPress: () => deleteMsg(item.id) },
+              ])}
+            />
+          )}
           contentContainerStyle={styles.list}
           onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: true })}
           ListFooterComponent={loading

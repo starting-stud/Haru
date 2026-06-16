@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { fetchChat } from '../utils/api';
-import { saveChatMsg, getChatHistory } from '../utils/storage';
+import { saveChatMsg, getChatHistory, overwriteChatHistory } from '../utils/storage';
 import * as Speech from 'expo-speech';
 
 export function useChatbot() {
@@ -156,5 +156,14 @@ export function useChatbot() {
     setLoading(false);
   }, [history, loading]);
 
-  return { messages, loading, send, initGreeting, ready };
+  const deleteMsg = useCallback((id) => {
+    setMessages(prev => {
+      const updated = prev.filter(m => m.id !== id);
+      setHistory(updated.map(m => ({ role: m.role, content: m.content })));
+      overwriteChatHistory('general', updated.map(m => ({ role: m.role, content: m.content, ts: Date.now() })));
+      return updated;
+    });
+  }, []);
+
+  return { messages, loading, send, initGreeting, ready, deleteMsg };
 }

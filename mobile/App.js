@@ -37,6 +37,7 @@ function MainTabs({ onLogout, haruBadge, onHaruOpen }) {
     <View style={{ flex: 1, backgroundColor: COLORS.bg }}>
       <AppHeader />
       <Tab.Navigator
+        initialRouteName="Diary"
         screenOptions={{
           headerShown: false,
           tabBarShowLabel: false,

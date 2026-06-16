@@ -120,13 +120,22 @@ export async function toggleFavorite(name) {
 // ── 채팅 기록 (AsyncStorage) ──────────────────────────────────────
 
 export async function getChatHistory(diaryId) {
-  const raw = await AsyncStorage.getItem(`chat_${diaryId}`);
+  const userName = await getCurrentUserName();
+  const key = userName ? `chat_${userName}_${diaryId}` : `chat_${diaryId}`;
+  const raw = await AsyncStorage.getItem(key);
   return raw ? JSON.parse(raw) : [];
 }
 
 export async function saveChatMsg(diaryId, role, content) {
-  const key = `chat_${diaryId}`;
+  const userName = await getCurrentUserName();
+  const key = userName ? `chat_${userName}_${diaryId}` : `chat_${diaryId}`;
   const history = await getChatHistory(diaryId);
   history.push({ role, content, ts: Date.now() });
   await AsyncStorage.setItem(key, JSON.stringify(history));
+}
+
+export async function overwriteChatHistory(diaryId, messages) {
+  const userName = await getCurrentUserName();
+  const key = userName ? `chat_${userName}_${diaryId}` : `chat_${diaryId}`;
+  await AsyncStorage.setItem(key, JSON.stringify(messages));
 }

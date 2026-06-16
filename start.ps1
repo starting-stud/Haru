@@ -8,7 +8,6 @@ Write-Host ""
 $ip = (Get-NetIPAddress -AddressFamily IPv4 | Where-Object {
     $_.IPAddress -notlike "127.*" -and
     $_.IPAddress -notlike "169.*" -and
-    $_.IPAddress -notlike "172.*" -and
     $_.PrefixOrigin -ne "WellKnown"
 } | Select-Object -First 1).IPAddress
 

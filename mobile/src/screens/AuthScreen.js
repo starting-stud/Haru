@@ -71,10 +71,10 @@ function LoginView({ onLogin, onGoSignup }) {
   const handleNameChange = (v) => { setName(v); setPin(''); setError('') };
 
   const handleLogin = async () => {
-    if (!name.trim()) { setError('이름을 입력해주세요'); return }
+    if (!name.trim()) { setError('닉네임을 입력해주세요'); return }
     if (pin.length < 4) { setError('비밀번호 4자리를 눌러주세요'); return }
     const accs = await getAccounts();
-    if (!accs[name.trim()]) { setError('등록되지 않은 이름이에요. 회원가입을 먼저 해주세요'); return }
+    if (!accs[name.trim()]) { setError('등록되지 않은 닉네임이에요. 회원가입을 먼저 해주세요'); return }
     if (accs[name.trim()].pin !== pin) {
       setError('비밀번호가 맞지 않아요. 다시 눌러주세요');
       setPin(''); return;
@@ -104,14 +104,14 @@ function LoginView({ onLogin, onGoSignup }) {
       <Text style={styles.sub}>소중한 하루를 그림으로 기록해요</Text>
 
       <View style={styles.card}>
-        <Text style={styles.label}>👤 이름</Text>
+        <Text style={styles.label}>👤 닉네임</Text>
         <TextInput
           style={styles.input}
-          placeholder="이름을 입력해주세요"
+          placeholder="닉네임을 입력해주세요"
           placeholderTextColor={COLORS.muted}
           value={name}
           onChangeText={handleNameChange}
-          maxLength={10}
+          maxLength={12}
           autoCorrect={false}
         />
 
@@ -163,7 +163,7 @@ function LoginView({ onLogin, onGoSignup }) {
         )}
       </View>
 
-      <Text style={styles.hint}>💡 이름으로 로그인해요. 앱 안에서 쓸 닉네임은{'\n'}로그인 후 '나' 탭에서 바꿀 수 있어요</Text>
+      <Text style={styles.hint}>💡 닉네임으로 로그인해요. 실명은 여러 명이 같아도 괜찮아요</Text>
     </ScrollView>
   );
 }
@@ -192,13 +192,11 @@ function SignupView({ onBack, onSignup }) {
     if (pinConfirm.length < 4) { setError('비밀번호 확인을 입력해주세요'); return }
     if (pin !== pinConfirm) { setError('비밀번호가 서로 달라요 🔐'); setPinConfirm(''); return }
     const accounts = await getAccounts();
-    if (accounts[name.trim()]) { setError('이미 사용 중인 이름이에요'); return }
-    accounts[name.trim()] = { pin, emoji: selectedEmoji, profile: { name: nick.trim(), guardian: guardian.trim() } };
+    if (accounts[nick.trim()]) { setError('이미 사용 중인 닉네임이에요'); return }
+    accounts[nick.trim()] = { pin, emoji: selectedEmoji, realName: name.trim(), profile: { name: nick.trim(), guardian: guardian.trim() } };
     await saveAccounts(accounts);
-    await AsyncStorage.setItem(`haruFavorites2_${name.trim()}`, JSON.stringify(['강아지','고양이','꽃','집','하트','사람']));
-    const user = { name: name.trim(), ...accounts[name.trim()] };
-    await AsyncStorage.setItem('haruAutoLogin', JSON.stringify({ name: name.trim(), pin }));
-    onSignup(user);
+    await AsyncStorage.setItem(`haruFavorites2_${nick.trim()}`, JSON.stringify(['강아지','고양이','꽃','집','하트','사람']));
+    Alert.alert('가입 완료! 🌱', '닉네임과 비밀번호로 로그인해주세요.', [{ text: '확인', onPress: onSignup }]);
   };
 
   return (
@@ -276,7 +274,7 @@ export default function AuthScreen({ onLogin }) {
       ) : (
         <SignupView
           onBack={() => setMode('login')}
-          onSignup={onLogin}
+          onSignup={() => setMode('login')}
         />
       )}
     </SafeAreaView>

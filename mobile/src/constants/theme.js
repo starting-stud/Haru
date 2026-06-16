@@ -18,7 +18,16 @@
   white: '#FFFFFF',
 };
 
-export const API_BASE = 'http://203.250.32.100:8000';
+export const API_BASE = 'http://10.227.96.108:8000';
+
+
+
+
+
+
+
+
+
 
 
 
